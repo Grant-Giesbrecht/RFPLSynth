@@ -333,9 +333,9 @@ classdef Network < handle
 					
 					stgk.SG(si) = stgk_.S(2,2,si) + ( stgk_.S(1,2,si) .* stk_.S(2,1,si) .* stk_.eh(2,2,si) ) ./ ( 1 - stk_.S(1,1,si) .* stk_.eh(2,2,si));
 					
-					stkg.eh(2,2,si) = stgk.e(2,2,si) + ( stgk.e(2,1,si).^2 .* stgk.SG(si) ) ./ ( 1 - stgk.e(1,1,) .* stgk.SG(si) );
+					stgk.eh(2,2,si) = stgk.e(2,2,si) + ( stgk.e(2,1,si).^2 .* stgk.SG(si) ) ./ ( 1 - stgk.e(1,1,si) .* stgk.SG(si) );
 					
-					stgk.gain(si) = stgk_.gain(si) .* ( abs(stgk.e(2,1,si)).^2 abs(stgk.S(2,1,si)).^2 ) ./ ( abs( 1- stgk.e(1,1,si) .* stgk.SG(si) ).^2 .* abs( 1 - stgk.eh(2,2,si) .* stgk.S(1,1,si) ).^2 );
+					stgk.gain(si) = stgk_.gain(si) .* ( abs(stgk.e(2,1,si)).^2 .* abs(stgk.S(2,1,si)).^2 ) ./ ( abs( 1- stgk.e(1,1,si) .* stgk.SG(si) ).^2 .* abs( 1 - stgk.eh(2,2,si) .* stgk.S(1,1,si) ).^2 );
 					
 					gain_m_frac1 = abs(stgk_.S(2,1,si)).^2 ./ ( abs(1 - abs(stgk_.S(1,1,si)).^2) .* abs( 1 - abs( stgk_.S(2,2,si) ).^2 ) );
 					gain_m_frac2_inv = abs(1 - stgk_.S(1,2,si) .* stgk_.S(2,1,si) .* conj(stgk_.S(1,1,si)) .* conj(stgk_.S(2,2,si)) ./ ( abs(1 - abs(stgk_.S(1,1,si)).^2) .* abs( 1 - abs( stgk_.S(2,2,si) ).^2 ) )).^2;
@@ -357,36 +357,36 @@ classdef Network < handle
 					
 					%======================================================
 					
-					if k == k_ready % If last stage, S_L gets a special definition
-						obj.SL(k, s) = obj.S(1, 1, k);
-					else % Standard S_L rule 
-						obj.SL(k-1, s) = obj.S(1,1,k,s) + ( obj.S(1,2,k,s) .* obj.S(2,1,k,s) .* obj.eh(1,1,k+1,s)) ./ ( 1 - obj.S(2,2,k,s) .* obj.eh() );
-					end
-					
-					
-					obj.eh(1, 1, k, s) = 
-
-					obj.e(1, 1, k, s) = 
-
-					S_L
-
-					eh_11_2 = e_11_2
+% 					if k == k_ready % If last stage, S_L gets a special definition
+% 						obj.SL(k, s) = obj.S(1, 1, k);
+% 					else % Standard S_L rule 
+% 						obj.SL(k-1, s) = obj.S(1,1,k,s) + ( obj.S(1,2,k,s) .* obj.S(2,1,k,s) .* obj.eh(1,1,k+1,s)) ./ ( 1 - obj.S(2,2,k,s) .* obj.eh() );
+% 					end
+% 					
+% 					
+% 					obj.eh(1, 1, k, s) = 
+% 
+% 					obj.e(1, 1, k, s) = 
+% 
+% 					S_L
+% 
+% 					eh_11_2 = e_11_2
 
 				end
 			
 			end
 			
-			% Compute eh_xy
-			% TODO: This is stage-recursive and should be moved to being a
-			% function in 'Network'.
-			obj.eh_11 = obj.e11 + obj.e21.^2 .* obj.S_L ./ (1 - obj.e22 .* obj.S_L); %TODO: Is this fully general?	(from p.51)
-			% TODO: eh_11 and others update for each stage as other stages
-			% are added because they modify S_L (and S_G if not starting at
-			% k=1).
-			obj.eh_22 = obj.e22 + obj.e21.^2 .* obj.S_G ./ (1 - obj.e11 .* obj.S_G); %TODO: Is this fully general? (from p.53)
-			
-			% Compute VSWR_in
-			obj.vswr_in = 1 + abs(eh_11)
+% 			% Compute eh_xy
+% 			% TODO: This is stage-recursive and should be moved to being a
+% 			% function in 'Network'.
+% 			obj.eh_11 = obj.e11 + obj.e21.^2 .* obj.S_L ./ (1 - obj.e22 .* obj.S_L); %TODO: Is this fully general?	(from p.51)
+% 			% TODO: eh_11 and others update for each stage as other stages
+% 			% are added because they modify S_L (and S_G if not starting at
+% 			% k=1).
+% 			obj.eh_22 = obj.e22 + obj.e21.^2 .* obj.S_G ./ (1 - obj.e11 .* obj.S_G); %TODO: Is this fully general? (from p.53)
+% 			
+% 			% Compute VSWR_in
+% 			obj.vswr_in = 1 + abs(eh_11)
 			
 		end %=============================== End compute_rcsv() ===========
 	end
