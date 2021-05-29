@@ -10,8 +10,8 @@ classdef Network < handle
 		s_vec
 		freqs
 		
-		vswr_input
-		vswr_output
+		vswr_in
+		vswr_out
 		
 		no_stg
 		
@@ -82,6 +82,20 @@ classdef Network < handle
 			obj.stages(k+1) = stg;
 			
 		end %============================= End setStg() ===================
+		
+		function idx = fidx(s) %=============== fidx() ====================
+			
+			% Find frequency
+			idx = find(stg.freqs == imag(s), 1);
+			if isempty(idx)
+				idx = [];
+				if obj.showErrors
+					displ("Failed to find frequency ", imag(s) ," Hz");
+				end
+				return;
+			end
+			
+		end %========================= End fidx() =========================
 		
 		function tf = hasFreq(k, s) %=============== hasFreq() ============
 			
@@ -222,52 +236,12 @@ classdef Network < handle
 			
 		end %=============================== End gain_m() =================
 		
-		function v = vswr_in(obj, s) %=========== vswr_in() ============
-			
-			% Find frequency
-			idx = find(net.freqs == imag(s), 1);
-			if isempty(idx)
-				v = [];
-				if obj.showErrors
-					displ("Failed to find frequency ", imag(s) ," Hz");
-				end
-				return;
-			end
-			
-			v = obj.vswr_input(idx);
-			
-		end %============================== End vswr_in() =================
-		
-		function v = vswr_out(obj, s) %========= vswr_out() ============
-			
-			% Find frequency
-			idx = find(net.freqs == imag(s), 1);
-			if isempty(idx)
-				v = [];
-				if obj.showErrors
-					displ("Failed to find frequency ", imag(s) ," Hz");
-				end
-				return;
-			end
-			
-			v = obj.vswr_output(idx);
-			
-		end %============================= End vswr_out() =================
-		
 		function s_l = SG(obj, k, s) %============= SG() ==================
 			
 			% Get stage
 			stg = obj.stages(k);
 			
-			% Find frequency
-			idx = find(stg.freqs == imag(s), 1);
-			if isempty(idx)
-				s_l = [];
-				if obj.showErrors
-					displ("Failed to find frequency ", imag(s) ," Hz");
-				end
-				return;
-			end
+			
 			
 			s_l = stg.S_G(idx);
 			
@@ -349,22 +323,36 @@ classdef Network < handle
 					
 					%======================================================
 					
+					% Prepare local variables for accessing and modifying
+					% stage data
+					stgk = obj.getStg(k); % Stage 'k'
+					stgk_ = obj.getStg(k-1); % Stage 'k-1'
+					si = obj.fidx(s); % 's' (ie. freq) index
+					
 					% New definitions
 					
-					obj.SG(k, s) = obj.S(2,2,k-1,s) + (obj.S(1,2,k-1,s) .* obj.S(2,1,k-1,s) .* obj.eh(2,2,k-1,s)) ./ ( 1 - obj.S(1,1,k-1,s) .* obj.eh(2,2,k-1,s) );
+					stgk.SG(si) = stgk_.S(2,2,si) + ( stgk_.S(1,2,si) .* stk_.S(2,1,si) .* stk_.eh(2,2,si) ) ./ ( 1 - stk_.S(1,1,si) .* stk_.eh(2,2,si));
 					
+					stkg.eh(2,2,si) = stgk.e(2,2,si) + ( stgk.e(2,1,si).^2 .* stgk.SG(si) ) ./ ( 1 - stgk.e(1,1,) .* stgk.SG(si) );
 					
-					obj.eh(2,2,k,s) = ?;
-					obj.gain(k, s) = ?;
-					obj.gain_m(k,s) = ?;
-					obj.gain_t(k,s) = ?;
-					obj.SL(k,s) = ?;
-					obj.eh(1,1,k,s) = ?;
+					stgk.gain(si) = stgk_.gain(si) .* ( abs(stgk.e(2,1,si)).^2 abs(stgk.S(2,1,si)).^2 ) ./ ( abs( 1- stgk.e(1,1,si) .* stgk.SG(si) ).^2 .* abs( 1 - stgk.eh(2,2,si) .* stgk.S(1,1,si) ).^2 );
+					
+					gain_m_frac1 = abs(stgk_.S(2,1,si)).^2 ./ ( abs(1 - abs(stgk_.S(1,1,si)).^2) .* abs( 1 - abs( stgk_.S(2,2,si) ).^2 ) );
+					gain_m_frac2_inv = abs(1 - stgk_.S(1,2,si) .* stgk_.S(2,1,si) .* conj(stgk_.S(1,1,si)) .* conj(stgk_.S(2,2,si)) ./ ( abs(1 - abs(stgk_.S(1,1,si)).^2) .* abs( 1 - abs( stgk_.S(2,2,si) ).^2 ) )).^2;
+					stgk_.gain_m(si) = gain_m_frac1 ./ gain_m_frac2_inv; % broken into two parts for readability
+					
+					% NOTE: This should not change between iterations. It's
+					% constant over freq.
+					% TODO: Is there a better place to put this?
+					stgk.gain_t(si) = min( stgk_.gain_m(:).* abs( stgk.S(2,1,:) ).^2 ./ abs( 1 - abs( stgk.S(1,1,:) ).^2 ) );
+					
+					stgk.SL(si) = stgk.S(1,1,si);
+					stgk.eh(1,1,si) = stgk.e(1,1,si) + stgk.e(2,1,si).^2 .* stgk.SL(si) ./ ( 1 - stgk.e(2,2,si) .* stgk.SL(si) );
 					
 					% Redefinitions
-					obj.SL(k-1,s) = ?;
-					obj.eh(1,1,k-1,s) = ?;
-					obj.vswr_in(s) = ?;
+					stgk_.SL(si) = stgk_.S(1,1,si) + stgk_.S(1,2,si) .* stgk_.S(2,1,si) .* stgk.eh(1,1,si) ./ ( 1 - stgk_.S(2,2,si) .* stgk.eh(1,1,si) ) ;
+					stgk_.eh(1,1,si) = stgk_.e(1,1,si) + stgk_.e(2,1,si).^2 .* stgk_.SL(si) ./( 1 - stgk_.e(2,2,si) .* stgk_.SL(si) ) ;
+					obj.vswr_in(si) = ( 1 + abs(obj.getStg(1).eh(1,1,si)) ) ./ ( 1 - abs(obj.getStg(1).eh(1,1,si)) ); %TODO: This always uses stage 1 for calculation. Verify this is correct.
 					
 					
 					%======================================================
