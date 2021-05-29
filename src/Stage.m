@@ -40,8 +40,8 @@ classdef Stage < handle
 		
 		% Multi-stage S-Parameters
 		eh
-		S_G
-		S_L
+		SG
+		SL
 		
 		
 		
@@ -74,8 +74,8 @@ classdef Stage < handle
 			
 			obj.eh = [];
 			
-			obj.S_G = [];
-			obj.S_L = [];
+			obj.SG = [];
+			obj.SL = [];
 			
 			obj.freqs = [];
 			
@@ -107,8 +107,8 @@ classdef Stage < handle
 			obj.e = zeros(2,2,m);
 			
 			obj.S = zeros(2,2,m);
-			obj.S_L = zeros(1,1,m);
-			obj.S_G = zeros(1,1,m);
+			obj.SL = zeros(1,1,m);
+			obj.SG = zeros(1,1,m);
 			
 			obj.eh = zeros(2,2,m);
 			
@@ -176,17 +176,17 @@ classdef Stage < handle
 % 				obj.S_22 = addTo(obj.S_11, obj.SPQ.Parameters(2, 2, f_idx));
 			end
 			
-			obj.S_G % = 0 for first stage if matched TODO: General form?
-			obj.S_L % = obj.S11 for first stage TODO: General form?
+			obj.SG % = 0 for first stage if matched TODO: General form?
+			obj.SL % = obj.S11 for first stage TODO: General form?
 			
 			% Compute eh_xy
 			% TODO: This is stage-recursive and should be moved to being a
 			% function in 'Network'.
-			obj.eh_11 = obj.e11 + obj.e21.^2 .* obj.S_L ./ (1 - obj.e22 .* obj.S_L); %TODO: Is this fully general?	(from p.51)
+			obj.eh_11 = obj.e11 + obj.e21.^2 .* obj.SL ./ (1 - obj.e22 .* obj.SL); %TODO: Is this fully general?	(from p.51)
 			% TODO: eh_11 and others update for each stage as other stages
-			% are added because they modify S_L (and S_G if not starting at
+			% are added because they modify SL (and SG if not starting at
 			% k=1).
-			obj.eh_22 = obj.e22 + obj.e21.^2 .* obj.S_G ./ (1 - obj.e11 .* obj.S_G); %TODO: Is this fully general? (from p.53)
+			obj.eh_22 = obj.e22 + obj.e21.^2 .* obj.SG ./ (1 - obj.e11 .* obj.SG); %TODO: Is this fully general? (from p.53)
 			
 			% Compute VSWR_in
 			obj.vswr_in = 1 + abs(eh_11)
