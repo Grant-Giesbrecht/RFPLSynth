@@ -8,6 +8,19 @@ classdef Stage < handle
 		eval_func
 		targets
 		
+		% Frequencies
+		% NOTE: s_vec is in the laplace domain (ie. sigma + j*omega) and
+		% thus the frequency must be encoded as the imaginary component of
+		% each element. 'freqs' is automatically populated from 's_raw'
+		% when updateFreqs is called. 's_vec' can be scaled to make the
+		% coefficients in h more convenient or match prior art. The purpose
+		% of 's_raw' is to provide a non-scaled laplace domain frequency
+		% input to exact the frequency component (imaginary) only, save as
+		% 'freq'. These values can then be used, for example, to query
+		% values from S2P files. 
+		freqs
+		s_vec
+		
 		%============================ Status Data =========================
 		
 		% Is used by the Network class to determine when these values are
@@ -39,8 +52,7 @@ classdef Stage < handle
 		S_G
 		S_L
 		
-		% Frequencies
-		freqs
+		
 		
 		% Polynomials
 		f
@@ -49,10 +61,8 @@ classdef Stage < handle
 		
 		% Metrics
 		gain
-		vswr_in
-		vswr_out
-		
-		
+		gain_t % Target gain
+		gain_m % Maximum gain
 		
 	end
 	
@@ -91,17 +101,52 @@ classdef Stage < handle
 			obj.h = Polynomial(0);
 			
 			obj.gain = [];
-			obj.vswr_in = [];
-			obj.vswr_out = [];
+			obj.gain_t = [];
+			obj.gain_m = [];
 		
 		end %========================= End Initializer ====================
 		
+		function updateFreqs(obj, s_vec, s_raw) %========= updateFreqs ====
+		%
+		% WARNING: It is critical that all stages use the same frequencies,
+		% and these frequencies must be represented in the Network object
+		% too. If using a Network class, be sure to call updateFreqs() from
+		% the Network class, which will call this function for each stage,
+		% to ensure that all stages and the Network have consistent
+		% frequency data.
+		
+			% Update frequency variables
+			obj.s_vec = s_vec;
+			obj.freqs = imag(s_raw);
+			
+			% Modify size of data vectors
+			m = length(obj.s_vec);
+			setLength(obj.e_11, m);
+			setLength(obj.e_21, m);
+			setLength(obj.e_12, m);
+			setLength(obj.e_22, m);
+			
+			setLength(obj.S_11, m);
+			setLength(obj.S_21, m);
+			setLength(obj.S_12, m);
+			setLength(obj.S_22, m);
+			setLength(obj.S_L, m);
+			setLength(obj.S_G, m);
+			
+			setLength(obj.eh_11, m);
+			setLength(obj.eh_21, m);
+			setLength(obj.eh_12, m);
+			setLength(obj.eh_22, m);
+			
+			setLength(obj.gain, m);
+			setLength(obj.gain_m, m);
+			setLength(obj.gain_t, m);
+			
+		end %============================== End updateFreqs() =============
+		
 		
 		%========================= compute_fsimple() ======================
-		function [gains, vswrs] = compute_fsimple(obj, h_vec, s_vec, s_raw) 
-
-			% Update frequencies
-			obj.freqs = imag(s_raw);
+		function [gains, vswrs] = compute_fsimple(obj, h_vec) 
 			
 			%=====================================================================%
 			%		Calculate Polynomials
@@ -136,7 +181,7 @@ classdef Stage < handle
 			vswrs = [];
 
 			% Compute e_xy
-			[obj.e_11, obj.e_21, obj.e_22] = poly2S(obj.f, obj.g, obj.h, s_vec);
+			[obj.e_11, obj.e_21, obj.e_22] = poly2S(obj.f, obj.g, obj.h, obj.s_vec);
 			obj.e_12 = obj.e_21;
 
 			% Populate S_xy
@@ -144,7 +189,7 @@ classdef Stage < handle
 			obj.S_21 = [];
 			obj.S_12 = [];
 			obj.S_22 = [];
-			for frq = imag(s_raw)
+			for frq = obj.freqs
 				
 				% Find index
 				f_idx = find(obj.SPQ.Frequencies == frq);
