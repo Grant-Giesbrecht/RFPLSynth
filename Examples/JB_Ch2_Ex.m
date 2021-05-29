@@ -75,7 +75,6 @@ net.weights = [1, 5, 0; 1, 5, 0; 1, 0, 0; 1, 0, 0; 0, 0, 1];
 % Define targets, Optimize h(s):
 
 % Access functions desgined to follow the text by J+B
-addpath('./JB_Funcs');
 
 s_vec = s_raw./f_scale;
 
