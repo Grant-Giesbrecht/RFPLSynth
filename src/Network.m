@@ -14,7 +14,7 @@ classdef Network < handle
 	
 	methods
 		
-		function obj = Network(k)
+		function obj = Network(k) %========== Initializer =================
 			obj.stages = [];
 			for i=1:k+1
 				obj.stages = addTo(obj.stages, Stage());
@@ -24,15 +24,42 @@ classdef Network < handle
 			obj.no_stg = k;
 			
 			obj.showErrors = false;
-		end
+		end %======================= End Initializer ======================
 		
-		function setStg(obj, k, stg)
+		function reset(obj) %===================== reset() ================
+			
+			% For each stage...
+			for s=obj.stages
+				s.recompute = true; % Mark as out of date
+			end
+			
+		end %================================ End reset() =================
+		
+		function setSPQ(obj, Sparams) %=============== setSPQ() ===========
+			
+			% For each stage...
+			for s=obj.stages
+				s.SPQ = Sparams; %Update the SParam variable
+			end
+			
+		end %=============================== End setSPQ() =================
+		
+		function setEvalFunc(obj, fnh) %================ setEvalFunc() ====
+			
+			% For each stage...
+			for s=obj.stages
+				s.eval_func = fnh; %Update the SParam variable
+			end
+			
+		end %=============================== End setEvalFunc() ============
+		
+		function setStg(obj, k, stg) %=========== setStg() ================
 			
 			obj.stages(k+1) = stg;
 			
-		end
+		end %============================= End setStg() ===================
 		
-		function tf = hasFreq(k, s)
+		function tf = hasFreq(k, s) %=============== hasFreq() ============
 			
 			% Get stage
 			stg = obj.stages(k);
@@ -41,7 +68,7 @@ classdef Network < handle
 			idx = find(stg.freqs == imag(s), 1);
 			tf = ~isempty(idx);
 			
-		end
+		end %================================= End hasFreq() ==============
 		
 		function exy = e(obj, r, c, k, s) %======== e() ===================
 			
@@ -136,10 +163,30 @@ classdef Network < handle
 		
 		function w = W(obj, k, c) %================ W() ===================
 			
-			w = obj.weights(k, c);
+			% Get stage
+			stg = obj.stages(k);
+			
+			w = stg.weights(c);
+			
+% 			w = obj.weights(k, c);
 			
 		end %====================================== W() ===================
 		
+		function compute_rcsv(obj) %============ compute_rcsv() ===========
+			
+			% Compute eh_xy
+			% TODO: This is stage-recursive and should be moved to being a
+			% function in 'Network'.
+			obj.eh_11 = obj.e11 + obj.e21.^2 .* obj.S_L ./ (1 - obj.e22 .* obj.S_L); %TODO: Is this fully general?	(from p.51)
+			% TODO: eh_11 and others update for each stage as other stages
+			% are added because they modify S_L (and S_G if not starting at
+			% k=1).
+			obj.eh_22 = obj.e22 + obj.e21.^2 .* obj.S_G ./ (1 - obj.e11 .* obj.S_G); %TODO: Is this fully general? (from p.53)
+			
+			% Compute VSWR_in
+			obj.vswr_in = 1 + abs(eh_11)
+			
+		end %=============================== End compute_rcsv() ===========
 	end
 	
 end
