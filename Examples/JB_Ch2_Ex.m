@@ -61,11 +61,16 @@ h_coef = [1, 1];
 
 % Create network object
 net = Network(4);
+net.setSPQ(SParam_Q); % Set all transistor S-parameters
+% net.setEvalFunc(?)
+net.reset();
 
-% Set weights of each parameter for ea. stage
-% row 1 = stage 1, row 5 = stage 5 (eq. only)
-% cols: gain, vswr_in, vswr_out
-net.weights = [1, 5, 0; 1, 5, 0; 1, 0, 0; 1, 0, 0; 0, 0, 1];
+% Set weights in evaluation functions for ea. stage
+net.getStg(1).weights = [1, 5, 0];
+net.getStg(2).weights = [1, 5, 0];
+net.getStg(3).weights = [1, 0, 0];
+net.getStg(4).weights = [1, 0, 0];
+net.getStg(5).weights = [0, 0, 1];
 
 
 %=========================================================================%
@@ -105,6 +110,8 @@ h_opt = addTo(h_opt, 0);
 
 % Update stage 1 to reflect optimized values
 net.getStg(1).compute_fsimple(h_opt, s_vec, s_raw);
+
+% Run the networks
 
 
 
