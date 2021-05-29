@@ -2,6 +2,22 @@ classdef Stage < handle
 	
 	properties 
 		
+		%======================= Configuration Settings ===================
+		
+		weights
+		eval_func
+		targets
+		
+		%============================ Status Data =========================
+		
+		% Is used by the Network class to determine when these values are
+		% up-to-date and should be used in recursive/full-system
+		% calcuations, or if this stage needs to be re-optimized and have
+		% be recomputed.
+		recompute 
+		
+		%============================ Output Data =========================
+		
 		% Equalizer S-Parameters
 		e_11
 		e_21
@@ -35,11 +51,21 @@ classdef Stage < handle
 		gain
 		vswr_in
 		vswr_out
+		
+		
+		
 	end
 	
 	methods
 		
-		function obj = Stage()
+		function obj = Stage() %=================== Initializer ===========
+			
+			obj.weights = [];
+			obj.targets = [];
+			obj.eval_func = @(h) error("Need to initialize function 'eval_func'");
+			
+			obj.recompute = true;
+			
 			obj.e_11 = [];
 			obj.e_21 = [];
 			obj.e_12 = [];
@@ -67,11 +93,12 @@ classdef Stage < handle
 			obj.gain = [];
 			obj.vswr_in = [];
 			obj.vswr_out = [];
-		end
+		
+		end %========================= End Initializer ====================
 		
 		
-		
-		function [gains, vswrs] = compute_fsimple(obj, h_vec, s_vec, s_raw)
+		%========================= compute_fsimple() ======================
+		function [gains, vswrs] = compute_fsimple(obj, h_vec, s_vec, s_raw) 
 
 			% Update frequencies
 			obj.freqs = imag(s_raw);
@@ -166,7 +193,9 @@ classdef Stage < handle
 % 
 % 			end
 
-		end
+			obj.recompute = false;
+
+		end %===================== End compute_fsimple() ==================
 
 		
 	end
