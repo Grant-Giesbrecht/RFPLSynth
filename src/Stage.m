@@ -32,23 +32,14 @@ classdef Stage < handle
 		%============================ Output Data =========================
 		
 		% Equalizer S-Parameters
-		e_11
-		e_21
-		e_12
-		e_22
+		e
 		
 		% Transistor S-Parameters
-		S_11
-		S_21
-		S_12
-		S_22
+		S
 		SPQ
 		
 		% Multi-stage S-Parameters
-		eh_11
-		eh_21
-		eh_12
-		eh_22
+		eh
 		S_G
 		S_L
 		
@@ -76,20 +67,12 @@ classdef Stage < handle
 			
 			obj.recompute = true;
 			
-			obj.e_11 = [];
-			obj.e_21 = [];
-			obj.e_12 = [];
-			obj.e_22 = [];
+			obj.e = [];
 			
-			obj.S_11 = [];
-			obj.S_21 = [];
-			obj.S_12 = [];
-			obj.S_22 = [];
 			
-			obj.eh_11 = [];
-			obj.eh_21 = [];
-			obj.eh_12 = [];
-			obj.eh_22 = [];
+			obj.S = [];
+			
+			obj.eh = [];
 			
 			obj.S_G = [];
 			obj.S_L = [];
@@ -121,26 +104,17 @@ classdef Stage < handle
 			
 			% Modify size of data vectors
 			m = length(obj.s_vec);
-			setLength(obj.e_11, m);
-			setLength(obj.e_21, m);
-			setLength(obj.e_12, m);
-			setLength(obj.e_22, m);
+			obj.e = zeros(2,2,m);
 			
-			setLength(obj.S_11, m);
-			setLength(obj.S_21, m);
-			setLength(obj.S_12, m);
-			setLength(obj.S_22, m);
-			setLength(obj.S_L, m);
-			setLength(obj.S_G, m);
+			obj.S = zeros(2,2,m);
+			obj.S_L = zeros(1,1,m);
+			obj.S_G = zeros(1,1,m);
 			
-			setLength(obj.eh_11, m);
-			setLength(obj.eh_21, m);
-			setLength(obj.eh_12, m);
-			setLength(obj.eh_22, m);
+			obj.eh = zeros(2,2,m);
 			
-			setLength(obj.gain, m);
-			setLength(obj.gain_m, m);
-			setLength(obj.gain_t, m);
+			obj.gain_t = zeros(1,1,m);
+			obj.gain = zeros(1,1,m);
+			obj.gain_m = zeros(1,1,m);
 			
 		end %============================== End updateFreqs() =============
 		
@@ -185,10 +159,7 @@ classdef Stage < handle
 			obj.e_12 = obj.e_21;
 
 			% Populate S_xy
-			obj.S_11 = [];
-			obj.S_21 = [];
-			obj.S_12 = [];
-			obj.S_22 = [];
+			obj.S = [];
 			for frq = obj.freqs
 				
 				% Find index
@@ -197,11 +168,12 @@ classdef Stage < handle
 					error("THIS NEEDS TO BE HANDLED BETTER - Failed to find frequency");
 					return;
 				end
-			
-				obj.S_11 = addTo(obj.S_11, obj.SPQ.Parameters(1, 1, f_idx));
-				obj.S_21 = addTo(obj.S_11, obj.SPQ.Parameters(2, 1, f_idx));
-				obj.S_12 = addTo(obj.S_11, obj.SPQ.Parameters(1, 2, f_idx));
-				obj.S_22 = addTo(obj.S_11, obj.SPQ.Parameters(2, 2, f_idx));
+
+				% TODO: This must be modified to match the new S format
+% 				obj.S_11 = addTo(obj.S_11, obj.SPQ.Parameters(1, 1, f_idx));
+% 				obj.S_21 = addTo(obj.S_11, obj.SPQ.Parameters(2, 1, f_idx));
+% 				obj.S_12 = addTo(obj.S_11, obj.SPQ.Parameters(1, 2, f_idx));
+% 				obj.S_22 = addTo(obj.S_11, obj.SPQ.Parameters(2, 2, f_idx));
 			end
 			
 			obj.S_G % = 0 for first stage if matched TODO: General form?
