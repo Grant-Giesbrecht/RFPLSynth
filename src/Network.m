@@ -111,7 +111,7 @@ classdef Network < handle
 		
 		function setStg(obj, k, stg) %=========== setStg() ================
 			
-			obj.stages(k+1) = stg;
+			obj.stages(k) = stg;
 			
 		end %============================= End setStg() ===================
 		
@@ -329,7 +329,7 @@ classdef Network < handle
 			
 		end %====================================== W() ===================
 		
-		function compute_rcsv(obj) %============ compute_rcsv() ===========
+		function kr = numReady(obj)
 			
 			% Determine number of stages that are ready for recursive
 			% computation.
@@ -352,12 +352,75 @@ classdef Network < handle
 				error("Cannot perform recursive computation. No frequencies given.");
 			end
 			
+			kr = k_ready;
+			
+		end
+		
+		function plotGain(obj, f_scale, figNo)
+			
+			if ~exist('f_scale','var')
+				f_scale = 1;
+			end
+			
+			if exist('figNo','var')
+				figure(figNo);
+			end
+			
+			% Determine number of stages that are ready for recursive
+			% computation.
+			k_ready = obj.numReady();
+			
+			% For each prepared stage, plot frequency
+			hold off;
+			legend_array = [];
+			for k = 1:k_ready
+				plot(obj.freqs./f_scale, lin2dB(obj.getStg(k).gain)./2);
+				hold on;
+				if k ~= 1
+					legend_array = addTo(legend_array, strcat("Stages 1-", num2str(k)));
+				else
+					legend_array = addTo(legend_array, strcat("Stage 1"));
+				end
+			end
+			
+			% Prepare axes
+			title("Network Gain by Stage");
+			ylabel("Gain (dB)");
+			legend(legend_array);
+			if f_scale == 1e-3
+				ustr = "mHz";
+			elseif f_scale == 1
+				ustr = "Hz";
+			elseif f_scale == 1e3
+				ustr = "kHz";
+			elseif f_scale == 1e6
+				ustr = "MHz";
+			elseif f_scale == 1e9
+				ustr = "GHz";
+			elseif f_scale == 1e12
+				ustr = "THz";
+			else
+				ustr = "?";
+			end
+			xlabel(strcat("Frequency (", ustr, ")"));
+			grid on;
+			
+			
+			
+		end
+		
+		function compute_rcsv(obj) %============ compute_rcsv() ===========
+			
+			% Determine number of stages that are ready for recursive
+			% computation.
+			k_ready = obj.numReady();
+			
 			% Perform recursive computation (over stage No.) for each frequency point
 			for s = obj.s_vec
 				
 				
 				% Recursively, go through each stage
-				for k = 1:length(obj.stages)
+				for k = 1:k_ready
 				
 					%======================================================
 					
@@ -380,7 +443,6 @@ classdef Network < handle
 					stgk.eh(2,2,si) = stgk.e(2,2,si) + ( stgk.e(2,1,si).^2 .* stgk.SG(si) ) ./ ( 1 - stgk.e(1,1,si) .* stgk.SG(si) );
 					
 					stgk.gain(si) = stgk_.gain(si) .* ( abs(stgk.e(2,1,si)).^2 .* abs(stgk.S(2,1,si)).^2 ) ./ ( abs( 1- stgk.e(1,1,si) .* stgk.SG(si) ).^2 .* abs( 1 - stgk.eh(2,2,si) .* stgk.S(1,1,si) ).^2 );
-					displ(stgk.gain(si));
 					
 					gain_m_frac1 = abs(stgk_.S(2,1,si)).^2 ./ ( abs(1 - abs(stgk_.S(1,1,si)).^2) .* abs( 1 - abs( stgk_.S(2,2,si) ).^2 ) );
 					gain_m_frac2_inv = abs(1 - stgk_.S(1,2,si) .* stgk_.S(2,1,si) .* conj(stgk_.S(1,1,si)) .* conj(stgk_.S(2,2,si)) ./ ( abs(1 - abs(stgk_.S(1,1,si)).^2) .* abs( 1 - abs( stgk_.S(2,2,si) ).^2 ) )).^2;
