@@ -12,7 +12,7 @@ classdef Stage < handle
 		% NOTE: s_vec is in the laplace domain (ie. sigma + j*omega) and
 		% thus the frequency must be encoded as the imaginary component of
 		% each element. 'freqs' is automatically populated from 's_raw'
-		% when updateFreqs is called. 's_vec' can be scaled to make the
+		% when setFreqs is called. 's_vec' can be scaled to make the
 		% coefficients in h more convenient or match prior art. The purpose
 		% of 's_raw' is to provide a non-scaled laplace domain frequency
 		% input to exact the frequency component (imaginary) only, save as
@@ -89,11 +89,11 @@ classdef Stage < handle
 		
 		end %========================= End Initializer ====================
 		
-		function updateFreqs(obj, s_vec, s_raw) %========= updateFreqs ====
+		function setFreqs(obj, s_vec, s_raw) %========= setFreqs ====
 		%
 		% WARNING: It is critical that all stages use the same frequencies,
 		% and these frequencies must be represented in the Network object
-		% too. If using a Network class, be sure to call updateFreqs() from
+		% too. If using a Network class, be sure to call setFreqs() from
 		% the Network class, which will call this function for each stage,
 		% to ensure that all stages and the Network have consistent
 		% frequency data.
@@ -116,11 +116,31 @@ classdef Stage < handle
 			obj.gain = zeros(1,1,m);
 			obj.gain_m = zeros(1,1,m);
 			
-		end %============================== End updateFreqs() =============
+			idx = 1;
+			for fr = obj.freqs
+				obj.S(1,1,idx) = getParam(1,1,fr, obj.SPQ);
+				obj.S(2,1,idx) = getParam(2,1,fr, obj.SPQ);
+				obj.S(1,2,idx) = getParam(1,2,fr, obj.SPQ);
+				obj.S(2,2,idx) = getParam(2,2,fr, obj.SPQ);
+				idx = idx + 1;
+			end
+			
+		end %============================== End setFreqs() =============
 		
+		function str = polystr(obj)
+			
+			str = "";
+			
+			if ~obj.recompute
+				str = strcat(str, "f(s) = ", obj.f.str('s'));
+				str = strcat(str, string(newline), "g(s) = ", obj.g.str('s'));
+				str = strcat(str, string(newline), "h(s) = ", obj.h.str('s'));
+			end
+			
+		end
 		
 		%========================= compute_fsimple() ======================
-		function [gains, vswrs] = compute_fsimple(obj, h_vec) 
+		function compute_fsimple(obj, h_vec) 
 			
 			%=====================================================================%
 			%		Calculate Polynomials
@@ -151,64 +171,65 @@ classdef Stage < handle
 			%=====================================================================%
 			%		Calculate Error Function Parameters
 
-			gains = [];
-			vswrs = [];
-
+% 			gains = [];
+% 			vswrs = [];
+% 
 			% Compute e_xy
-			[obj.e_11, obj.e_21, obj.e_22] = poly2S(obj.f, obj.g, obj.h, obj.s_vec);
-			obj.e_12 = obj.e_21;
-
-			% Populate S_xy
-			obj.S = [];
-			for frq = obj.freqs
-				
-				% Find index
-				f_idx = find(obj.SPQ.Frequencies == frq);
-				if isempty(f_idx)
-					error("THIS NEEDS TO BE HANDLED BETTER - Failed to find frequency");
-					return;
-				end
-
-				% TODO: This must be modified to match the new S format
-% 				obj.S_11 = addTo(obj.S_11, obj.SPQ.Parameters(1, 1, f_idx));
-% 				obj.S_21 = addTo(obj.S_11, obj.SPQ.Parameters(2, 1, f_idx));
-% 				obj.S_12 = addTo(obj.S_11, obj.SPQ.Parameters(1, 2, f_idx));
-% 				obj.S_22 = addTo(obj.S_11, obj.SPQ.Parameters(2, 2, f_idx));
-			end
+			[obj.e(1,1,:), obj.e(2,1,:), obj.e(2,2,:)] = poly2S(obj.f, obj.g, obj.h, obj.s_vec);
+			obj.e(1,2,:) = obj.e(2,1,:);
 			
-			obj.SG % = 0 for first stage if matched TODO: General form?
-			obj.SL % = obj.S11 for first stage TODO: General form?
-			
-			% Compute eh_xy
-			% TODO: This is stage-recursive and should be moved to being a
-			% function in 'Network'.
-			obj.eh_11 = obj.e11 + obj.e21.^2 .* obj.SL ./ (1 - obj.e22 .* obj.SL); %TODO: Is this fully general?	(from p.51)
-			% TODO: eh_11 and others update for each stage as other stages
-			% are added because they modify SL (and SG if not starting at
-			% k=1).
-			obj.eh_22 = obj.e22 + obj.e21.^2 .* obj.SG ./ (1 - obj.e11 .* obj.SG); %TODO: Is this fully general? (from p.53)
-			
-			% Compute VSWR_in
-			obj.vswr_in = 1 + abs(eh_11)
-			
-% 			% At each frequency....
-% 			idx = 0;
-% 			for s=s_vec
-% 				idx = idx + 1;
 % 
-% 				% Calculate S-Parameters of entire network
-% 				eh_11 = e11 + e21^2*S11 / (1 - e22*S11);
+% 			% Populate S_xy
+% 			obj.S = [];
+% 			for frq = obj.freqs
+% 				
+% 				% Find index
+% 				f_idx = find(obj.SPQ.Frequencies == frq);
+% 				if isempty(f_idx)
+% 					error("THIS NEEDS TO BE HANDLED BETTER - Failed to find frequency");
+% 					return;
+% 				end
 % 
-% 				% Calculate gain
-% 				gain = abs(e21)^2 * abs(S21)^2 /  abs( 1 - e22*S11 )^2;
-% 
-% 				% Calculate VSWR at input
-% 				vswr_in = (1 + abs(eh_11))/(1 - abs(eh_11));
-% 
-% 				gains = addTo(gains, gain);
-% 				vswrs = addTo(vswrs, vswr_in);
-% 
+% 				% TODO: This must be modified to match the new S format
+% % 				obj.S_11 = addTo(obj.S_11, obj.SPQ.Parameters(1, 1, f_idx));
+% % 				obj.S_21 = addTo(obj.S_11, obj.SPQ.Parameters(2, 1, f_idx));
+% % 				obj.S_12 = addTo(obj.S_11, obj.SPQ.Parameters(1, 2, f_idx));
+% % 				obj.S_22 = addTo(obj.S_11, obj.SPQ.Parameters(2, 2, f_idx));
 % 			end
+% 			
+% 			obj.SG % = 0 for first stage if matched TODO: General form?
+% 			obj.SL % = obj.S11 for first stage TODO: General form?
+% 			
+% 			% Compute eh_xy
+% 			% TODO: This is stage-recursive and should be moved to being a
+% 			% function in 'Network'.
+% 			obj.eh_11 = obj.e11 + obj.e21.^2 .* obj.SL ./ (1 - obj.e22 .* obj.SL); %TODO: Is this fully general?	(from p.51)
+% 			% TODO: eh_11 and others update for each stage as other stages
+% 			% are added because they modify SL (and SG if not starting at
+% 			% k=1).
+% 			obj.eh_22 = obj.e22 + obj.e21.^2 .* obj.SG ./ (1 - obj.e11 .* obj.SG); %TODO: Is this fully general? (from p.53)
+% 			
+% 			% Compute VSWR_in
+% 			obj.vswr_in = 1 + abs(eh_11)
+% 			
+% % 			% At each frequency....
+% % 			idx = 0;
+% % 			for s=s_vec
+% % 				idx = idx + 1;
+% % 
+% % 				% Calculate S-Parameters of entire network
+% % 				eh_11 = e11 + e21^2*S11 / (1 - e22*S11);
+% % 
+% % 				% Calculate gain
+% % 				gain = abs(e21)^2 * abs(S21)^2 /  abs( 1 - e22*S11 )^2;
+% % 
+% % 				% Calculate VSWR at input
+% % 				vswr_in = (1 + abs(eh_11))/(1 - abs(eh_11));
+% % 
+% % 				gains = addTo(gains, gain);
+% % 				vswrs = addTo(vswrs, vswr_in);
+% % 
+% % 			end
 
 			obj.recompute = false;
 
