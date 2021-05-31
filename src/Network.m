@@ -1,4 +1,18 @@
 classdef Network < handle
+% NETWORK Model a network for Simplified Real Frequency Technique (SRFT)
+%	Models a network for using SRFT.
+%
+% NETWORK Properties:
+%	stages - List of Stage items
+%	objfuncs - TODO: Unused
+%	s_vec - Vector of scaled frequencies
+%	freqs - Vector of not-scaled freqeuncies. Imaginary component must be
+%	present in the S-parameter objects of the various stages.
+%	vswr_in - Input VSWR
+%	vswr_out - Output VSWR
+%	showErrors - Allow or prevent error messages from displaying to console
+%	null_stage - Stage object for properly handing first stage
+%	stage_end - TODO: Unused
 %
 %
 %
@@ -7,7 +21,6 @@ classdef Network < handle
 		
 		stages
 		
-		weights
 		objfuncs
 		
 		s_vec
@@ -15,9 +28,7 @@ classdef Network < handle
 		
 		vswr_in
 		vswr_out
-		
-		no_stg
-		
+				
 		showErrors
 		
 		null_stage
@@ -31,10 +42,7 @@ classdef Network < handle
 			for i=1:k+1
 				obj.stages = addTo(obj.stages, Stage());
 			end
-			
-			obj.weights = [];
-			obj.no_stg = k;
-			
+						
 			obj.showErrors = false;
 			
 			obj.null_stage = Stage();
@@ -42,6 +50,8 @@ classdef Network < handle
 		end %======================= End Initializer ======================
 		
 		function initNullStage(obj)
+			% Initialize 'null_stage' with the correct values for
+			% calculating the first stage's parameters.
 			
 			obj.null_stage.S(1,1,:) = 0;
 			obj.null_stage.S(2,1,:) = 1;
@@ -56,6 +66,7 @@ classdef Network < handle
 		end
 		
 		function reset(obj) %===================== reset() ================
+			% Reset the 'recompute' flags for all stages.
 			
 			% For each stage...
 			for s=obj.stages
@@ -65,6 +76,7 @@ classdef Network < handle
 		end %================================ End reset() =================
 		
 		function setSPQ(obj, Sparams) %=============== setSPQ() ===========
+			% Set the sparameters object for the transistor in every stage
 			
 			% For each stage...
 			for s=obj.stages
@@ -75,6 +87,7 @@ classdef Network < handle
 		end %=============================== End setSPQ() =================
 		
 		function setEvalFunc(obj, fnh) %================ setEvalFunc() ====
+			% Set the evaluation function for every stage.
 			
 			% For each stage...
 			for s=obj.stages
@@ -84,6 +97,8 @@ classdef Network < handle
 		end %=============================== End setEvalFunc() ============
 		
 		function setFreqs(obj, s_vec, s_raw) %====== setFreqs() =====
+			% Set the raw and scaled frequencies for the network and every
+			% stage.
 			
 			% Update frequency for Network class
 			obj.s_vec = s_vec;
@@ -105,12 +120,14 @@ classdef Network < handle
 		end %============================= End setFreqs() ==============
 		
 		function setStg(obj, k, stg) %=========== setStg() ================
+			% Sets the k-th order stage object
 			
 			obj.stages(k) = stg;
 			
 		end %============================= End setStg() ===================
 		
 		function idx = fscidx(obj, s) %=============== fidx() ====================
+			% Gets the index corresponding to the scaled frequency 's'
 			
 			% Find frequency
 			idx = find(obj.s_vec == (s), 1);
@@ -125,6 +142,8 @@ classdef Network < handle
 		end %========================= End fidx() =========================
 		
 		function tf = hasFreq(obj, k, s) %=============== hasFreq() ============
+			% Checks if the non-scaled frequency 's' is present in the
+			% network.
 			
 			% Get stage
 			stg = obj.stages(k);
@@ -136,12 +155,15 @@ classdef Network < handle
 		end %================================= End hasFreq() ==============
 			
 		function stg = getStg(obj, k) %=========== getStg() ===============
+			% Gets the k-th order stage object
 			
 			stg = obj.stages(k);
 			
 		end %=================================== End getStg() =============
 		
 		function kr = numReady(obj) %============= numRead() ==============
+			% Gets the number of stages that have been assigned
+			% polynomials.
 			
 			% Determine number of stages that are ready for recursive
 			% computation.
@@ -169,6 +191,8 @@ classdef Network < handle
 		end %============================= End numRead() ==================
 		
 		function plotGain(obj, f_scale, figNo) %========= plotGain() ======
+			% Plots the gain of each stage. f_scale allows you to scale the
+			% frequency on the x-axis, and figNo allows you pick the 
 			
 			if ~exist('f_scale','var')
 				f_scale = 1;
@@ -222,6 +246,8 @@ classdef Network < handle
 		end %============================ End plotGain() ==================
 		
 		function compute_rcsv(obj) %============ compute_rcsv() ===========
+			% Recursively calculates the S-parameters, gain, and VSWR of
+			% each stage.
 			
 			% Determine number of stages that are ready for recursive
 			% computation.
