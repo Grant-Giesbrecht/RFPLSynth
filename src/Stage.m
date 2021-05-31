@@ -112,9 +112,9 @@ classdef Stage < handle
 			
 			obj.eh = zeros(2,2,m);
 			
-			obj.gain_t = zeros(1,1,m);
-			obj.gain = zeros(1,1,m);
-			obj.gain_m = zeros(1,1,m);
+			obj.gain_t = zeros(1,m);
+			obj.gain = zeros(1,m);
+			obj.gain_m = zeros(1,m);
 			
 			idx = 1;
 			for fr = obj.freqs
