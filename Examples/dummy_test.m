@@ -36,17 +36,17 @@ net.compute_rcsv();
 
 % Feed in Stage-3 Polynomial
 net.getStg(3).compute_fsimple([-.251, -.090, 0]);
-displ(newline, "Stage 2 Polynomials:", newline, net.getStg(3).polystr());
+displ(newline, "Stage 3 Polynomials:", newline, net.getStg(3).polystr());
 net.compute_rcsv();
 
 % Feed in Stage-4 Polynomial
 net.getStg(4).compute_fsimple([-.248, .136, 0]);
-displ(newline, "Stage 2 Polynomials:", newline, net.getStg(4).polystr());
+displ(newline, "Stage 4 Polynomials:", newline, net.getStg(4).polystr());
 net.compute_rcsv();
 
 % Feed in Stage-5 Polynomial
 net.getStg(5).compute_fsimple([.480, .271, 0]);
-displ(newline, "Stage 2 Polynomials:", newline, net.getStg(5).polystr());
+displ(newline, "Stage 5 Polynomials:", newline, net.getStg(5).polystr());
 net.compute_rcsv();
 
 % Plot gains (Should match Fig. 2,10)
