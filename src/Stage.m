@@ -199,6 +199,10 @@ classdef Stage < handle
 			obj.f.set(0, 1);
 
 			obj.recompute = false;
+			
+			% Compute e_xy
+			[obj.e(1,1,:), obj.e(2,1,:), obj.e(2,2,:)] = poly2S(obj.f, obj.g, obj.h, obj.s_vec);
+			obj.e(1,2,:) = obj.e(2,1,:);
 
 		end %===================== End compute_fsimple() ==================
 
