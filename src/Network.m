@@ -33,6 +33,8 @@ classdef Network < handle
 				
 		showErrors
 		
+		forcedCoefs
+		
 		null_stage
 		stage_end
 	end
@@ -49,7 +51,17 @@ classdef Network < handle
 			
 			obj.null_stage = Stage();
 			
+			obj.forcedCoefs = containers.Map;
+			
 		end %======================= End Initializer ======================
+		
+		function forceCoef(obj, order, value)
+			
+			for s=obj.stages
+				s.forceCoef(order, value);
+			end
+			
+		end
 		
 		function initNullStage(obj)
 			% Initialize 'null_stage' with the correct values for
