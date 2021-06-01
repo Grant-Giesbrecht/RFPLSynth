@@ -55,25 +55,49 @@ default_tol = 1e-6;
 options = optimoptions('lsqcurvefit','Algorithm','levenberg-marquardt', 'FunctionTolerance', default_tol/100);
 options.MaxFunctionEvaluations = 6e3;
 options.MaxIterations = 4e3;
-% options.Display = 'none';
+options.Display = 'none';
 lb = [];
 ub = [];
 
 % Run Optimizer for Stage 1
-[h_opt,resnorm,residual,exitflag,output] = lsqcurvefit(fn1, h_coef, s_vec, [0], lb, ub, options);
+[h_opt,resnorm,residual,exitflag,net.getStg(1).optim_output] = lsqcurvefit(fn1, h_coef, s_vec, [0], lb, ub, options);
 
 % Perform Stage-1 computations
 net.getStg(1).compute_fsimple(h_opt);
 net.compute_rcsv();
-displ("Stage 1 Polynomials:", newline, net.getStg(1).polystr());
+displ(newline, "Stage 1 Polynomials:", newline, net.getStg(1).polystr());
 
 % Run Optimizer for Stage 2
-[h_opt,resnorm,residual,exitflag,output] = lsqcurvefit(fn2, h_coef, s_vec, [0], lb, ub, options);
+[h_opt,resnorm,residual,exitflag,net.getStg(2).optim_output] = lsqcurvefit(fn2, h_coef, s_vec, [0], lb, ub, options);
 
 % Perform Stage-2 computations
 net.getStg(2).compute_fsimple(h_opt);
 net.compute_rcsv();
-displ("Stage 2 Polynomials:", newline, net.getStg(2).polystr());
+displ(newline, "Stage 2 Polynomials:", newline, net.getStg(2).polystr());
+
+% Run Optimizer for Stage 3
+[h_opt,resnorm,residual,exitflag,net.getStg(3).optim_output] = lsqcurvefit(fn3, h_coef, s_vec, [0], lb, ub, options);
+
+% Perform Stage-3 computations
+net.getStg(3).compute_fsimple(h_opt);
+net.compute_rcsv();
+displ(newline, "Stage 3 Polynomials:", newline, net.getStg(3).polystr());
+
+% Run Optimizer for Stage 4
+[h_opt,resnorm,residual,exitflag,net.getStg(4).optim_output] = lsqcurvefit(fn4, h_coef, s_vec, [0], lb, ub, options);
+
+% Perform Stage-4 computations
+net.getStg(4).compute_fsimple(h_opt);
+net.compute_rcsv();
+displ(newline, "Stage 4 Polynomials:", newline, net.getStg(4).polystr());
+
+% Run Optimizer for Stage 5
+[h_opt,resnorm,residual,exitflag,net.getStg(5).optim_output] = lsqcurvefit(fn5, h_coef, s_vec, [0], lb, ub, options);
+
+% Perform Stage-5 computations
+net.getStg(5).compute_fsimple(h_opt);
+net.compute_rcsv();
+displ(newline, "Stage 5 Polynomials:", newline, net.getStg(5).polystr());
 
 
 
