@@ -115,8 +115,11 @@ classdef Network < handle
 			
 			% Update network-wide variables
 			m = length(obj.s_vec);
-			setLength(obj.vswr_in, m);
-			setLength(obj.vswr_out, m);
+			obj.vswr_in = setLength(obj.vswr_in, m);
+			obj.vswr_out = setLength(obj.vswr_out, m);
+			obj.vswr_in_t = setLength(obj.vswr_in_t, m);
+			obj.vswr_out_t = setLength(obj.vswr_out_t, m);
+			
 			
 			
 		end %============================= End setFreqs() ==============
@@ -255,62 +258,52 @@ classdef Network < handle
 			% computation.
 			k_ready = obj.numReady();
 			
-			% Perform recursive computation (over stage No.) for each frequency point
-			for s = obj.s_vec
-				
-				
-				% Recursively, go through each stage
-				for k = 1:k_ready
-				
-					%======================================================
-					
-					% Prepare local variables for accessing and modifying
-					% stage data
-					stgk = obj.getStg(k); % Stage 'k'
-					if k == 1
-						stgk_ = obj.null_stage;
-					else
-						stgk_ = obj.getStg(k-1); % Stage 'k-1'
-					end
-					si = obj.fscidx(s); % 's' (ie. freq) index
-					if isempty(si)
-						error("Failed to find frequency!");
-					end
-					% New definitions
-					
-					stgk.SG(si) = stgk_.S(2,2,si) + ( stgk_.S(1,2,si) .* stgk_.S(2,1,si) .* stgk_.eh(2,2,si) ) ./ ( 1 - stgk_.S(1,1,si) .* stgk_.eh(2,2,si));
-					
-					stgk.eh(2,2,si) = stgk.e(2,2,si) + ( stgk.e(2,1,si).^2 .* stgk.SG(si) ) ./ ( 1 - stgk.e(1,1,si) .* stgk.SG(si) );
-					
-					stgk.gain(si) = stgk_.gain(si) .* ( abs(stgk.e(2,1,si)).^2 .* abs(stgk.S(2,1,si)).^2 ) ./ ( abs( 1- stgk.e(1,1,si) .* stgk.SG(si) ).^2 .* abs( 1 - stgk.eh(2,2,si) .* stgk.S(1,1,si) ).^2 );
-					
-					gain_m_frac1 = abs(stgk_.S(2,1,si)).^2 ./ ( abs(1 - abs(stgk_.S(1,1,si)).^2) .* abs( 1 - abs( stgk_.S(2,2,si) ).^2 ) );
-					gain_m_frac2_inv = abs(1 - stgk_.S(1,2,si) .* stgk_.S(2,1,si) .* conj(stgk_.S(1,1,si)) .* conj(stgk_.S(2,2,si)) ./ ( abs(1 - abs(stgk_.S(1,1,si)).^2) .* abs( 1 - abs( stgk_.S(2,2,si) ).^2 ) )).^2;
-					stgk_.gain_m(si) = gain_m_frac1 ./ gain_m_frac2_inv; % broken into two parts for readability
-					
-					% NOTE: This should not change between iterations. It's
-					% constant over freq.
-					% TODO: Is there a better place to put this?
-					stgk.gain_t(si) = min( flatten(stgk_.gain_m(:)) .* abs( flatten(stgk.S(2,1,:)) ).^2 ./ abs( 1 - abs( flatten(stgk.S(1,1,:)) ).^2 ) );
-					
-					stgk.SL(si) = stgk.S(1,1,si);
-					stgk.eh(1,1,si) = stgk.e(1,1,si) + stgk.e(2,1,si).^2 .* stgk.SL(si) ./ ( 1 - stgk.e(2,2,si) .* stgk.SL(si) );
-					
-					% Redefinitions
-					if k ~= 1
-						stgk_.SL(si) = stgk_.S(1,1,si) + stgk_.S(1,2,si) .* stgk_.S(2,1,si) .* stgk.eh(1,1,si) ./ ( 1 - stgk_.S(2,2,si) .* stgk.eh(1,1,si) ) ;
-						stgk_.eh(1,1,si) = stgk_.e(1,1,si) + stgk_.e(2,1,si).^2 .* stgk_.SL(si) ./( 1 - stgk_.e(2,2,si) .* stgk_.SL(si) ) ;
-					end
-					obj.vswr_in(si) = ( 1 + abs(obj.getStg(1).eh(1,1,si)) ) ./ ( 1 - abs(obj.getStg(1).eh(1,1,si)) ); %TODO: This always uses stage 1 for calculation. Verify this is correct.
-					
-					
-					% Save new values back to network
-					obj.setStg(k, stgk); % Stage 'k'
-					if k ~= 1
-						obj.setStg(k-1, stgk_); % Stage 'k-1'
-					end
-					
+			% Recursively, go through each stage
+			for k = 1:k_ready
 
+				%======================================================
+
+				% Prepare local variables for accessing and modifying
+				% stage data
+				stgk = obj.getStg(k); % Stage 'k'
+				if k == 1
+					stgk_ = obj.null_stage;
+				else
+					stgk_ = obj.getStg(k-1); % Stage 'k-1'
+				end
+				
+				% New definitions
+
+				stgk.SG(:) = stgk_.S(2,2,:) + ( stgk_.S(1,2,:) .* stgk_.S(2,1,:) .* stgk_.eh(2,2,:) ) ./ ( 1 - stgk_.S(1,1,:) .* stgk_.eh(2,2,:));
+
+				stgk.eh(2,2,:) = flatten(stgk.e(2,2,:)) + ( flatten(stgk.e(2,1,:)).^2 .* flatten(stgk.SG(:)) ) ./ ( 1 - flatten(stgk.e(1,1,:)) .* flatten(stgk.SG(:)) );
+
+				stgk.gain(:) = flatten(stgk_.gain(:)) .* ( flatten(abs(stgk.e(2,1,:))).^2 .* flatten(abs(stgk.S(2,1,:))).^2 ) ./ ( abs( 1- flatten(stgk.e(1,1,:)) .* flatten(stgk.SG(:)) ).^2 .* abs( 1 - flatten(stgk.eh(2,2,:)) .* flatten(stgk.S(1,1,:)) ).^2 );
+
+				gain_m_frac1 = abs(flatten(stgk_.S(2,1,:))).^2 ./ ( abs(1 - flatten(abs(stgk_.S(1,1,:))).^2) .* abs( 1 - abs( flatten(stgk_.S(2,2,:)) ).^2 ) );
+				gain_m_frac2_inv = abs(1 - flatten(stgk_.S(1,2,:)) .* flatten(stgk_.S(2,1,:)) .* conj(flatten(stgk_.S(1,1,:))) .* conj(flatten(stgk_.S(2,2,:))) ./ ( abs(1 - abs(flatten(stgk_.S(1,1,:))).^2) .* abs( 1 - abs( flatten(stgk_.S(2,2,:))).^2 ) )).^2;
+				stgk_.gain_m(:) = gain_m_frac1 ./ gain_m_frac2_inv; % broken into two parts for readability
+
+				% NOTE: This should not change between iterations. It's
+				% constant over freq.
+				% TODO: Is there a better place to put this?
+				stgk.gain_t(:) = min( flatten(stgk_.gain_m(:)) .* abs( flatten(stgk.S(2,1,:)) ).^2 ./ abs( 1 - abs( flatten(stgk.S(1,1,:)) ).^2 ) );
+
+				stgk.SL(:) = stgk.S(1,1,:);
+				stgk.eh(1,1,:) = flatten(stgk.e(1,1,:)) + flatten(stgk.e(2,1,:)).^2 .* flatten(stgk.SL(:)) ./ ( 1 - flatten(stgk.e(2,2,:)) .* flatten(stgk.SL(:)));
+
+				% Redefinitions
+				if k ~= 1
+					stgk_.SL(:) = stgk_.S(1,1,:) + stgk_.S(1,2,:) .* stgk_.S(2,1,:) .* stgk.eh(1,1,:) ./ ( 1 - stgk_.S(2,2,:) .* stgk.eh(1,1,:) ) ;
+					stgk_.eh(1,1,:) = flatten(stgk_.e(1,1,:)) + flatten(stgk_.e(2,1,:)).^2 .* flatten(stgk_.SL(:)) ./( 1 - flatten(stgk_.e(2,2,:)) .* flatten(stgk_.SL(:))) ;
+				end
+				obj.vswr_in(:) = ( 1 + flatten(abs(obj.getStg(1).eh(1,1,:))) ) ./ ( 1 - flatten(abs(obj.getStg(1).eh(1,1,:))) ); %TODO: This always uses stage 1 for calculation. Verify this is correct.
+
+
+				% Save new values back to network
+				obj.setStg(k, stgk); % Stage 'k'
+				if k ~= 1
+					obj.setStg(k-1, stgk_); % Stage 'k-1'
 				end
 			
 			end
