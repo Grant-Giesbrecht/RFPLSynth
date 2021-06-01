@@ -1,4 +1,29 @@
 classdef Stage < handle
+% STAGE Represents a stage in an SRFT calculation
+%
+% STAGE Properties:
+%	weights - Weights for each parameter in the evaluation function
+%	eval_function - Function used to evaluation coefficients during
+%	optimization.
+%	targets - Targets for each parameter during optimization
+%	freqs - Frequencies (not scaled)
+%	s_vec - Scaled frequencies
+%	recompute - If true, indicates that the stage's polynomials have not
+%	been optimized and should not be used in recursive network-wide
+%	calcualtions.
+%	e - S-parameters of the equalizer
+%	S - S-parameters of the active device (populated from SPQ)
+%	SPQ - Sparameter object of the active device
+%	eh - S-parameters of the equalizer, while accounting for all optimized
+%	stages
+%	SG - Generator reflection
+%	SL - Load reflection
+%	f - f(s) SRFT polynomial
+%	g - g(s) SRFT polynomial
+%	h - h(s) SRFT polynomial
+%	gain - Vector of stage gain at each frequency
+%	gain_t - Vector of gain targets for each freqency
+%	gain_m - Vector of maxium gains for each frequency
 	
 	properties 
 		
@@ -90,13 +115,17 @@ classdef Stage < handle
 		end %========================= End Initializer ====================
 		
 		function setFreqs(obj, s_vec, s_raw) %========= setFreqs ====
-		%
-		% WARNING: It is critical that all stages use the same frequencies,
-		% and these frequencies must be represented in the Network object
-		% too. If using a Network class, be sure to call setFreqs() from
-		% the Network class, which will call this function for each stage,
-		% to ensure that all stages and the Network have consistent
-		% frequency data.
+			% Update the frequency variables and resize the output arrays
+			% correctly. s_vec uses scaled laplace domain freqs (ie. 1 Hz
+			% written as i*1/scaling_factor s.t. scaling_factor is any real
+			% number) and s_raw are non-scaled laplace domain frequencies.
+		
+			% WARNING: It is critical that all stages use the same frequencies,
+			% and these frequencies must be represented in the Network object
+			% too. If using a Network class, be sure to call setFreqs() from
+			% the Network class, which will call this function for each stage,
+			% to ensure that all stages and the Network have consistent
+			% frequency data.
 		
 			% Update frequency variables
 			obj.s_vec = s_vec;
@@ -128,6 +157,7 @@ classdef Stage < handle
 		end %============================== End setFreqs() =============
 		
 		function str = polystr(obj)
+			% Returns the polynomials as a string
 			
 			str = "";
 			
@@ -141,9 +171,9 @@ classdef Stage < handle
 		
 		%========================= compute_fsimple() ======================
 		function compute_fsimple(obj, h_vec) 
-			
-			%=====================================================================%
-			%		Calculate Polynomials
+			% Computes the polynomial g(s) from h(s) assuming f(s) = 1.
+			% h_vec contains the coefficients for h(s) in matlab polynomial
+			% vector format.
 
 			% Create h(s) Polynomial object from h vector
 			obj.h = Polynomial(h_vec);
@@ -167,69 +197,6 @@ classdef Stage < handle
 			% Set out weird f(s) so the e equations below can be general
 			obj.f = Polynomial(0);
 			obj.f.set(0, 1);
-
-			%=====================================================================%
-			%		Calculate Error Function Parameters
-
-% 			gains = [];
-% 			vswrs = [];
-% 
-			% Compute e_xy
-			[obj.e(1,1,:), obj.e(2,1,:), obj.e(2,2,:)] = poly2S(obj.f, obj.g, obj.h, obj.s_vec);
-			obj.e(1,2,:) = obj.e(2,1,:);
-			
-% 
-% 			% Populate S_xy
-% 			obj.S = [];
-% 			for frq = obj.freqs
-% 				
-% 				% Find index
-% 				f_idx = find(obj.SPQ.Frequencies == frq);
-% 				if isempty(f_idx)
-% 					error("THIS NEEDS TO BE HANDLED BETTER - Failed to find frequency");
-% 					return;
-% 				end
-% 
-% 				% TODO: This must be modified to match the new S format
-% % 				obj.S_11 = addTo(obj.S_11, obj.SPQ.Parameters(1, 1, f_idx));
-% % 				obj.S_21 = addTo(obj.S_11, obj.SPQ.Parameters(2, 1, f_idx));
-% % 				obj.S_12 = addTo(obj.S_11, obj.SPQ.Parameters(1, 2, f_idx));
-% % 				obj.S_22 = addTo(obj.S_11, obj.SPQ.Parameters(2, 2, f_idx));
-% 			end
-% 			
-% 			obj.SG % = 0 for first stage if matched TODO: General form?
-% 			obj.SL % = obj.S11 for first stage TODO: General form?
-% 			
-% 			% Compute eh_xy
-% 			% TODO: This is stage-recursive and should be moved to being a
-% 			% function in 'Network'.
-% 			obj.eh_11 = obj.e11 + obj.e21.^2 .* obj.SL ./ (1 - obj.e22 .* obj.SL); %TODO: Is this fully general?	(from p.51)
-% 			% TODO: eh_11 and others update for each stage as other stages
-% 			% are added because they modify SL (and SG if not starting at
-% 			% k=1).
-% 			obj.eh_22 = obj.e22 + obj.e21.^2 .* obj.SG ./ (1 - obj.e11 .* obj.SG); %TODO: Is this fully general? (from p.53)
-% 			
-% 			% Compute VSWR_in
-% 			obj.vswr_in = 1 + abs(eh_11)
-% 			
-% % 			% At each frequency....
-% % 			idx = 0;
-% % 			for s=s_vec
-% % 				idx = idx + 1;
-% % 
-% % 				% Calculate S-Parameters of entire network
-% % 				eh_11 = e11 + e21^2*S11 / (1 - e22*S11);
-% % 
-% % 				% Calculate gain
-% % 				gain = abs(e21)^2 * abs(S21)^2 /  abs( 1 - e22*S11 )^2;
-% % 
-% % 				% Calculate VSWR at input
-% % 				vswr_in = (1 + abs(eh_11))/(1 - abs(eh_11));
-% % 
-% % 				gains = addTo(gains, gain);
-% % 				vswrs = addTo(vswrs, vswr_in);
-% % 
-% % 			end
 
 			obj.recompute = false;
 
