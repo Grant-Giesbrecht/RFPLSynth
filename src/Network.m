@@ -28,6 +28,8 @@ classdef Network < handle
 		
 		vswr_in
 		vswr_out
+		vswr_in_t
+		vswr_out_t
 				
 		showErrors
 		
