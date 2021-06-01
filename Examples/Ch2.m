@@ -7,6 +7,8 @@
 % calcaulated incorrectly for k=2+
 %
 
+force_h0 = true;
+
 SParam_Q = sparameters("JB_Ch2_Ex_Q.s2p"); % Read transistor S-parameter data
 
 s_raw = sqrt(-1).*[18, 19, 20, 21].*1e9;
@@ -25,6 +27,10 @@ net.vswr_in_t = 1.5;
 net.vswr_out_t = 1.5;
 
 h_coef = [1,1,0];
+if force_h0
+	h_coef = [1, 1];
+	net.forceCoef(0, 0);
+end
 
 % Set weights in evaluation functions for ea. stage
 net.getStg(1).weights = [1, 5, 0];
