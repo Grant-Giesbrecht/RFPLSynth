@@ -82,6 +82,8 @@ classdef Stage < handle
 		gain_t % Target gain
 		gain_m % Maximum gain
 		
+		optim_output
+		
 	end
 	
 	methods
@@ -114,6 +116,8 @@ classdef Stage < handle
 			obj.gain_m = [];
 			
 			obj.forcedCoefs = containers.Map;
+			
+			obj.optim_output = [];
 		
 		end %========================= End Initializer ====================
 		
