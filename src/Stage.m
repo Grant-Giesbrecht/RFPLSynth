@@ -46,6 +46,8 @@ classdef Stage < handle
 		freqs
 		s_vec
 		
+		forcedCoefs
+		
 		%============================ Status Data =========================
 		
 		% Is used by the Network class to determine when these values are
@@ -94,7 +96,6 @@ classdef Stage < handle
 			
 			obj.e = [];
 			
-			
 			obj.S = [];
 			
 			obj.eh = [];
@@ -111,6 +112,8 @@ classdef Stage < handle
 			obj.gain = [];
 			obj.gain_t = [];
 			obj.gain_m = [];
+			
+			obj.forcedCoefs = containers.Map;
 		
 		end %========================= End Initializer ====================
 		
@@ -156,6 +159,19 @@ classdef Stage < handle
 			
 		end %============================== End setFreqs() =============
 		
+		function forceCoef(obj, order, value)
+			
+			if ~isnumeric(value)
+				if obj.showErrors
+					warning("Failed to add non-numeric value");
+				end
+				return;
+			end
+			
+			obj.forcedCoefs(string(order)) = value;
+			
+		end
+		
 		function str = polystr(obj)
 			% Returns the polynomials as a string
 			
@@ -175,6 +191,28 @@ classdef Stage < handle
 			% h_vec contains the coefficients for h(s) in matlab polynomial
 			% vector format.
 
+			% Add forced coefficients
+			for ky = obj.forcedCoefs.keys()
+				
+				% Get key (as char)
+				key = ky{1};
+				
+				% Get order
+				ord = str2num(key);	
+				idx = length(h_vec)+1 - ord;
+				idx_s = idx;
+				if idx_s > length(h_vec)
+					idx_s = length(h_vec);
+				end
+				
+				val = obj.forcedCoefs(key); % Get value
+				
+				% Update h_vec
+				h_vec = [h_vec(1:idx_s) , val, h_vec(idx:end)];
+				
+			end
+			
+			
 			% Create h(s) Polynomial object from h vector
 			obj.h = Polynomial(h_vec);
 
