@@ -300,7 +300,7 @@ classdef Network < handle
 			k_ready = obj.numReady();
 			
 			% For each prepared stage, plot frequency
-			subplot(1,2,1);
+			subplot(1,3,1);
 			hold off;
 			legend_array = [];
 			for k = 1:k_ready
@@ -336,7 +336,7 @@ classdef Network < handle
 			forceZeroY();
 			grid on;
 			
-			subplot(1,2,2);
+			subplot(1,3,2);
 			hold off;
 			legend_array = [];
 			for k = 1:k_ready
@@ -357,6 +357,26 @@ classdef Network < handle
 			forceZeroY();
 			grid on;
 			
+			subplot(1,3,3);
+			hold off;
+			legend_array = [];
+			for k = 1:k_ready
+				plot(obj.freqs./f_scale, obj.getStg(k).vswr_in_opt);
+				hold on;
+				if k ~= 1
+					legend_array = addTo(legend_array, strcat("Target Gain: Stages 1-", num2str(k)));
+				else
+					legend_array = addTo(legend_array, strcat("Target Gain: Stage 1"));
+				end
+			end
+			
+			% Prepare axes
+			title("Input VSWR Seen During Optimization of ea. Stage");
+			ylabel("VSWR");
+			legend(legend_array);
+			xlabel(strcat("Frequency (", ustr, ")"));
+			forceZeroY();
+			grid on;
 			
 		end %============================ End plotGain() ==================
 		
@@ -525,6 +545,12 @@ classdef Network < handle
 				obj.vswr_in(:) = ( 1 + flatten(abs(obj.getStg(1).eh(1,1,:))) ) ./ ( 1 - flatten(abs(obj.getStg(1).eh(1,1,:))) ); %TODO: This always uses stage 1 for calculation. Verify this is correct.
 				obj.vswr_out(:) = (1 + abs(flatten(stgk.eh(2,2,:)))) ./ ( 1 - abs(flatten(stgk.eh(2,2,:))) );
 
+				% Save VSWR to stage that used this VSWR for optimization
+				if k == k_ready
+					stgk.vswr_in_opt = obj.vswr_in(:);
+					stgk.vswr_out_opt = obj.vswr_out(:);
+				end
+				
 				% Save new values back to network
 				obj.setStg(k, stgk); % Stage 'k'
 				if k ~= 1

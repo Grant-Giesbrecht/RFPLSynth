@@ -55,6 +55,9 @@ classdef Stage < handle
 		
 		forcedCoefs
 		
+		vswr_in_opt
+		vswr_out_opt
+		
 		%============================ Status Data =========================
 		
 		% Is used by the Network class to determine when these values are
