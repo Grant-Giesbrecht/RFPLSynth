@@ -496,10 +496,15 @@ classdef Network < handle
 
 				if k ~= length(obj.stages) %For all but last stage...
 					
+					product = 1;
+					for sk = 1:k-1
+						product = product .* obj.getStg(sk).gain_m;
+					end
+					
 					a = addTo(a, smush(flatten(stgk_.gain_m(:))));
 					b = addTo(b, smush(abs( flatten(stgk.S(2,1,:)) ).^2));
 					c = addTo(c, smush(abs( flatten(stgk.S(1,1,:)) ).^2));
-					stgk.gain_t(:) = min( flatten(stgk_.gain_m(:)) .* abs( flatten(stgk.S(2,1,:)) ).^2 ./ abs( 1 - abs( flatten(stgk.S(1,1,:)) ).^2 ) );
+					stgk.gain_t(:) = min( flatten(product) .* abs( flatten(stgk.S(2,1,:)) ).^2 ./ abs( 1 - abs( flatten(stgk.S(1,1,:)) ).^2 ) );
 				else % Special case for last stage (because no active device present)
 					product = 1;
 					for sk = 1:length(obj.stages)-1
