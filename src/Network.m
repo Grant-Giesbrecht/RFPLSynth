@@ -32,9 +32,7 @@ classdef Network < handle
 		vswr_out_t
 				
 		showErrors
-		
-		forcedCoefs
-		
+				
 		null_stage
 		stage_end
 	end
@@ -51,7 +49,6 @@ classdef Network < handle
 			
 			obj.null_stage = Stage();
 			
-			obj.forcedCoefs = containers.Map;
 			
 		end %======================= End Initializer ======================
 		
@@ -100,6 +97,15 @@ classdef Network < handle
 			
 		end %=============================== End setSPQ() =================
 		
+		function setHGuess(obj, h_init)
+			
+			% For each stage...
+			for s=obj.stages
+				s.h_init_guess = h_init; %Update the SParam variable
+			end
+			
+		end
+		
 		function setEvalFunc(obj, fnh) %================ setEvalFunc() ====
 			% Set the evaluation function for every stage.
 			
@@ -109,6 +115,15 @@ classdef Network < handle
 			end
 			
 		end %=============================== End setEvalFunc() ============
+		
+		function setOptOptions(obj, opt)
+			
+			% For each stage...
+			for s=obj.stages
+				s.opt_options = opt; %Update the optimoptions variable
+			end
+			
+		end
 		
 		function setFreqs(obj, s_vec, s_raw) %====== setFreqs() =====
 			% Set the raw and scaled frequencies for the network and every
@@ -262,6 +277,46 @@ classdef Network < handle
 			
 		end %============================ End plotGain() ==================
 		
+		function optimize(obj, k, showResults)
+			
+			% Check for optional argument
+			if ~exist('showResults','var')
+				showResults = 'none';
+			end
+			
+			% Ensure acceptable argument value provieded
+			if ~strcmp(showResults, 'none') && ~strcmp(showResults, 'simple') && ~strcmp(showResults, 'detailed')
+				showResults = 'none';
+			end
+			
+			optimizer_function = @(h, s_data) default_opt(h, obj, k);
+			
+			% Run Optimizer for Stage k
+			tic; % Start timer
+			[h_opt,resnorm,residual,exitflag,obj.getStg(k).optim_out] = lsqcurvefit(optimizer_function, obj.getStg(k).h_init_guess, obj.s_vec, [0], obj.getStg(k).lower_bounds, obj.getStg(k).upper_bounds, obj.getStg(k).opt_options); % Run optimizer
+			obj.getStg(k).optim_out.optTime = toc; % End timer
+			
+			% Save additional optimizer outputs
+			obj.getStg(k).optim_out.optResidual = residual;
+			obj.getStg(k).optim_out.optResNorm = resnorm;
+			obj.getStg(k).optim_out.exitflag = exitflag;
+
+			% Perform Stage-k computations
+			obj.getStg(k).compute_fsimple(h_opt);
+			obj.compute_rcsv();
+			
+			% Print simple output
+			if strcmp(showResults, 'simple') || strcmp(showResults, 'detailed')
+				displ(newline, "Stage ", k, " Polynomials:      (", obj.getStg(k).optim_out.optTime, " sec)" , newline, obj.getStg(k).polystr());
+			end
+			
+			% Print detailed output
+			if strcmp(showResults, 'detailed')
+				disp(obj.getStg(k).optim_out)
+			end
+			
+		end
+		
 		function compute_rcsv(obj) %============ compute_rcsv() ===========
 			% Recursively calculates the S-parameters, gain, and VSWR of
 			% each stage.
@@ -310,7 +365,7 @@ classdef Network < handle
 					stgk_.eh(1,1,:) = flatten(stgk_.e(1,1,:)) + flatten(stgk_.e(2,1,:)).^2 .* flatten(stgk_.SL(:)) ./( 1 - flatten(stgk_.e(2,2,:)) .* flatten(stgk_.SL(:))) ;
 				end
 				obj.vswr_in(:) = ( 1 + flatten(abs(obj.getStg(1).eh(1,1,:))) ) ./ ( 1 - flatten(abs(obj.getStg(1).eh(1,1,:))) ); %TODO: This always uses stage 1 for calculation. Verify this is correct.
-
+				obj.vswr_out(:) = (1 + abs(flatten(stgk.eh(2,2,:)))) ./ ( 1 - abs(flatten(stgk.eh(2,2,:))) );
 
 				% Save new values back to network
 				obj.setStg(k, stgk); % Stage 'k'
