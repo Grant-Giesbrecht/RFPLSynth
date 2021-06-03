@@ -30,7 +30,14 @@ classdef Stage < handle
 		%======================= Configuration Settings ===================
 		
 		weights
+		
 		eval_func
+		opt_options
+		lower_bounds
+		upper_bounds
+		
+		h_init_guess
+		
 		targets
 		
 		% Frequencies
@@ -82,7 +89,7 @@ classdef Stage < handle
 		gain_t % Target gain
 		gain_m % Maximum gain
 		
-		optim_output
+		optim_out
 		
 	end
 	
@@ -117,7 +124,11 @@ classdef Stage < handle
 			
 			obj.forcedCoefs = containers.Map;
 			
-			obj.optim_output = [];
+			obj.optim_out = [];
+			
+			obj.opt_options = optimoptions('lsqcurvefit','Algorithm','levenberg-marquardt');
+			obj.lower_bounds = [];
+			obj.upper_bounds = [];
 		
 		end %========================= End Initializer ====================
 		
