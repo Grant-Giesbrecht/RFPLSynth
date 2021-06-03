@@ -317,6 +317,21 @@ classdef Network < handle
 			
 		end
 		
+		function optimizerSummary(obj)
+			
+			k_ready = obj.numReady();
+			
+			for k = 1:k_ready
+				displ("Stage ", k, " Optimization Summary:");
+				displ("    ", "Target Gain: ", obj.getStg(k).gain_t);
+				displ("    ", "Maximum Gain: ", obj.getStg(k).gain_m);
+				displ("    ", "Gain: ", obj.getStg(k).gain);
+				displ(newline);
+				
+			end
+			
+		end
+		
 		function compute_rcsv(obj) %============ compute_rcsv() ===========
 			% Recursively calculates the S-parameters, gain, and VSWR of
 			% each stage.
@@ -351,9 +366,7 @@ classdef Network < handle
 				gain_m_frac2_inv = abs(1 - flatten(stgk_.S(1,2,:)) .* flatten(stgk_.S(2,1,:)) .* conj(flatten(stgk_.S(1,1,:))) .* conj(flatten(stgk_.S(2,2,:))) ./ ( abs(1 - abs(flatten(stgk_.S(1,1,:))).^2) .* abs( 1 - abs( flatten(stgk_.S(2,2,:))).^2 ) )).^2;
 				stgk_.gain_m(:) = gain_m_frac1 ./ gain_m_frac2_inv; % broken into two parts for readability
 
-				% NOTE: This should not change between iterations. It's
-				% constant over freq.
-				% TODO: Is there a better place to put this?
+% 				if k ~= length(obj.stages)
 				stgk.gain_t(:) = min( flatten(stgk_.gain_m(:)) .* abs( flatten(stgk.S(2,1,:)) ).^2 ./ abs( 1 - abs( flatten(stgk.S(1,1,:)) ).^2 ) );
 
 				stgk.SL(:) = stgk.S(1,1,:);
