@@ -30,11 +30,15 @@ classdef Network < handle
 		vswr_out
 		vswr_in_t
 		vswr_out_t
-				
+		
 		showErrors
-				
+
 		null_stage
 		stage_end
+		
+		ZL
+		Z0
+		%ZG? TODO: Add ZG?
 	end
 	
 	methods
@@ -208,19 +212,76 @@ classdef Network < handle
 				end
 			end
 			
-			% Catch if no stages ready
-			if k_ready == 0
-				error("Cannot perform recursive computation. No stages have been prepared.");
-			end
-			
-			% Catch if s_vec not initialized
-			if isempty(obj.s_vec)
-				error("Cannot perform recursive computation. No frequencies given.");
-			end
-			
 			kr = k_ready;
 			
 		end %============================= End numRead() ==================
+		
+		function plotE(obj, f_scale, figNo)
+			
+			if ~exist('f_scale','var')
+				f_scale = 1;
+			end
+			
+			if exist('figNo','var')
+				figure(figNo);
+			end
+			
+			% Determine number of stages that are ready for recursive
+			% computation.
+			k_ready = obj.numReady();
+			
+			% For each prepared stage, plot frequency
+			subplot(1,2,1);
+			hold off;
+			legend_array = [];
+			for k = 1:k_ready
+				plot(obj.freqs./f_scale, abs(flatten(lin2dB(obj.getStg(k).e(2,1,:))))./2);
+				hold on;
+				legend_array = addTo(legend_array, strcat("Stage ", num2str(k)));
+			end
+			forceZeroY();
+			
+			% Prepare axes
+			title("Equalizer S_{21} by Stage");
+			ylabel("Gain (dB)");
+			legend(legend_array);
+			if f_scale == 1e-3
+				ustr = "mHz";
+			elseif f_scale == 1
+				ustr = "Hz";
+			elseif f_scale == 1e3
+				ustr = "kHz";
+			elseif f_scale == 1e6
+				ustr = "MHz";
+			elseif f_scale == 1e9
+				ustr = "GHz";
+			elseif f_scale == 1e12
+				ustr = "THz";
+			else
+				ustr = "?";
+			end
+			xlabel(strcat("Frequency (", ustr, ")"));
+			grid on;
+			
+			subplot(1,2,2);
+			hold off;
+			legend_array = [];
+			for k = 1:k_ready
+				plot(obj.freqs./f_scale, abs(flatten(lin2dB(obj.getStg(k).S(2,1,:))))./2);
+				hold on;
+				legend_array = addTo(legend_array, strcat("Stage ", num2str(k)));
+			end
+			
+			% Prepare axes
+			title("Equalizer $\hat{S}_{21}$ by Stage",'Interpreter','latex');
+			ylabel("Gain (dB)");
+			legend(legend_array);
+			xlabel(strcat("Frequency (", ustr, ")"));
+			forceZeroY();
+			grid on;
+			
+			
+		end
 		
 		function plotGain(obj, f_scale, figNo) %========= plotGain() ======
 			% Plots the gain of each stage. f_scale allows you to scale the
@@ -239,6 +300,7 @@ classdef Network < handle
 			k_ready = obj.numReady();
 			
 			% For each prepared stage, plot frequency
+			subplot(1,2,1);
 			hold off;
 			legend_array = [];
 			for k = 1:k_ready
@@ -271,22 +333,56 @@ classdef Network < handle
 				ustr = "?";
 			end
 			xlabel(strcat("Frequency (", ustr, ")"));
+			forceZeroY();
+			grid on;
+			
+			subplot(1,2,2);
+			hold off;
+			legend_array = [];
+			for k = 1:k_ready
+				plot(obj.freqs./f_scale, lin2dB(obj.getStg(k).gain_t)./2);
+				hold on;
+				if k ~= 1
+					legend_array = addTo(legend_array, strcat("Target Gain: Stages 1-", num2str(k)));
+				else
+					legend_array = addTo(legend_array, strcat("Target Gain: Stage 1"));
+				end
+			end
+			
+			% Prepare axes
+			title("Target Gain by Stage");
+			ylabel("Gain (dB)");
+			legend(legend_array);
+			xlabel(strcat("Frequency (", ustr, ")"));
+			forceZeroY();
 			grid on;
 			
 			
-			
 		end %============================ End plotGain() ==================
+		
+		function erVal = manualOpt(obj, k, h_vec)
+			
+			optimizer_function = @(h, s_data) default_opt(h, obj, k);
+			
+			% Run Optimizer for Stage k
+			erVal = default_opt(h_vec, obj, k);
+
+			% Perform Stage-k computations
+			obj.getStg(k).compute_fsimple(h_vec);
+			obj.compute_rcsv(k);
+			
+		end
 		
 		function optimize(obj, k, showResults)
 			
 			% Check for optional argument
 			if ~exist('showResults','var')
-				showResults = 'none';
+				showResults = 'warnings';
 			end
 			
 			% Ensure acceptable argument value provieded
-			if ~strcmp(showResults, 'none') && ~strcmp(showResults, 'simple') && ~strcmp(showResults, 'detailed')
-				showResults = 'none';
+			if ~strcmp(showResults, 'none') && ~strcmp(showResults, 'simple') && ~strcmp(showResults, 'detailed') && ~strcmp(showResults, 'warnings')
+				showResults = 'warnings';
 			end
 			
 			optimizer_function = @(h, s_data) default_opt(h, obj, k);
@@ -305,6 +401,17 @@ classdef Network < handle
 			obj.getStg(k).compute_fsimple(h_opt);
 			obj.compute_rcsv();
 			
+			% Print warnings
+			if strcmp(showResults, 'warnings') || strcmp(showResults, 'simple') || strcmp(showResults, 'detailed')
+				if exitflag == 0
+					warning(strcat("[Stage ", num2str(k), "] Optimizer Exit Status 0: Maximum Number of Iterations Exceeded."));
+				elseif exitflag == -1
+					warning(strcat("[Stage ", num2str(k), "] Optimizer Exit Status -1: Plot or output function stopped solver."));
+				elseif exitflag == -2
+					warning(strcat("[Stage ", num2str(k), "] Optimizer Exit Status -2: Problem is infeasible - inconsistent bounds."));
+				end
+			end
+			
 			% Print simple output
 			if strcmp(showResults, 'simple') || strcmp(showResults, 'detailed')
 				displ(newline, "Stage ", k, " Polynomials:      (", obj.getStg(k).optim_out.optTime, " sec)" , newline, obj.getStg(k).polystr());
@@ -317,7 +424,7 @@ classdef Network < handle
 			
 		end
 		
-		function optimizerSummary(obj)
+		function optimSummary(obj)
 			
 			k_ready = obj.numReady();
 			
@@ -326,19 +433,32 @@ classdef Network < handle
 				displ("    ", "Target Gain: ", obj.getStg(k).gain_t);
 				displ("    ", "Maximum Gain: ", obj.getStg(k).gain_m);
 				displ("    ", "Gain: ", obj.getStg(k).gain);
+				displ("    ", "Iterations: ", obj.getStg(k).optim_out.iterations);
+				displ("    ", "Exit FLag: ", obj.getStg(k).optim_out.exitflag);
+				displ("    ", "Residual: ", obj.getStg(k).optim_out.optResidual);
+				displ("    ", "Residual Norm: ", obj.getStg(k).optim_out.optResNorm);
 				displ(newline);
 				
 			end
 			
 		end
 		
-		function compute_rcsv(obj) %============ compute_rcsv() ===========
+		function compute_rcsv(obj, k_ready_ovrd) %============ compute_rcsv() ===========
 			% Recursively calculates the S-parameters, gain, and VSWR of
 			% each stage.
 			
 			% Determine number of stages that are ready for recursive
 			% computation.
 			k_ready = obj.numReady();
+			
+			% Check for optional argument
+			if exist('k_ready_ovrd','var')
+				k_ready = k_ready_ovrd;
+			end
+			
+			a = [];
+			b = [];
+			c = [];
 			
 			% Recursively, go through each stage
 			for k = 1:k_ready
@@ -360,14 +480,34 @@ classdef Network < handle
 
 				stgk.eh(2,2,:) = flatten(stgk.e(2,2,:)) + ( flatten(stgk.e(2,1,:)).^2 .* flatten(stgk.SG(:)) ) ./ ( 1 - flatten(stgk.e(1,1,:)) .* flatten(stgk.SG(:)) );
 
-				stgk.gain(:) = flatten(stgk_.gain(:)) .* ( flatten(abs(stgk.e(2,1,:))).^2 .* flatten(abs(stgk.S(2,1,:))).^2 ) ./ ( abs( 1- flatten(stgk.e(1,1,:)) .* flatten(stgk.SG(:)) ).^2 .* abs( 1 - flatten(stgk.eh(2,2,:)) .* flatten(stgk.S(1,1,:)) ).^2 );
-
+				if k ~= length(obj.stages) %For all but last stage...
+					stgk.gain(:) = flatten(stgk_.gain(:)) .* ( flatten(abs(stgk.e(2,1,:))).^2 .* flatten(abs(stgk.S(2,1,:))).^2 ) ./ ( abs( 1- flatten(stgk.e(1,1,:)) .* flatten(stgk.SG(:)) ).^2 .* abs( 1 - flatten(stgk.eh(2,2,:)) .* flatten(stgk.S(1,1,:)) ).^2 );
+				else % Special case for last stage (because no active device present)
+					
+					rho_L = flatten((obj.ZL - obj.Z0)./(obj.ZL + obj.Z0));
+					
+					stgk.gain(:) = flatten(stgk_.gain(:)) .* ( flatten(abs(stgk.e(2,1,:))).^2 .* ( 1 - abs(rho_L).^2 ) ./ ( abs( 1- flatten(stgk.e(1,1,:)) .* flatten(stgk.SG(:)) ).^2 .* abs( 1 - flatten(stgk.eh(2,2,:)) .* rho_L.^2 )));
+					
+				end
+				
 				gain_m_frac1 = abs(flatten(stgk_.S(2,1,:))).^2 ./ ( abs(1 - flatten(abs(stgk_.S(1,1,:))).^2) .* abs( 1 - abs( flatten(stgk_.S(2,2,:)) ).^2 ) );
 				gain_m_frac2_inv = abs(1 - flatten(stgk_.S(1,2,:)) .* flatten(stgk_.S(2,1,:)) .* conj(flatten(stgk_.S(1,1,:))) .* conj(flatten(stgk_.S(2,2,:))) ./ ( abs(1 - abs(flatten(stgk_.S(1,1,:))).^2) .* abs( 1 - abs( flatten(stgk_.S(2,2,:))).^2 ) )).^2;
 				stgk_.gain_m(:) = gain_m_frac1 ./ gain_m_frac2_inv; % broken into two parts for readability
 
-% 				if k ~= length(obj.stages)
-				stgk.gain_t(:) = min( flatten(stgk_.gain_m(:)) .* abs( flatten(stgk.S(2,1,:)) ).^2 ./ abs( 1 - abs( flatten(stgk.S(1,1,:)) ).^2 ) );
+				if k ~= length(obj.stages) %For all but last stage...
+					
+					a = addTo(a, smush(flatten(stgk_.gain_m(:))));
+					b = addTo(b, smush(abs( flatten(stgk.S(2,1,:)) ).^2));
+					c = addTo(c, smush(abs( flatten(stgk.S(1,1,:)) ).^2));
+					stgk.gain_t(:) = min( flatten(stgk_.gain_m(:)) .* abs( flatten(stgk.S(2,1,:)) ).^2 ./ abs( 1 - abs( flatten(stgk.S(1,1,:)) ).^2 ) );
+				else % Special case for last stage (because no active device present)
+					product = 1;
+					for sk = 1:length(obj.stages)-1
+						product = product .* obj.getStg(sk).gain_m;
+					end
+					
+					stgk.gain_t(:) = min( product );
+				end
 
 				stgk.SL(:) = stgk.S(1,1,:);
 				stgk.eh(1,1,:) = flatten(stgk.e(1,1,:)) + flatten(stgk.e(2,1,:)).^2 .* flatten(stgk.SL(:)) ./ ( 1 - flatten(stgk.e(2,2,:)) .* flatten(stgk.SL(:)));
