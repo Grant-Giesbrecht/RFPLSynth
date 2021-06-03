@@ -14,6 +14,8 @@ net.setSPQ(SParam_Q); % Set all transistor S-parameters
 net.setFreqs(s_vec, s_raw);
 net.reset();
 net.showErrors = true;
+net.Z0 = 50;
+net.ZL = 50;
 
 % Set weights in evaluation functions for ea. stage
 net.getStg(1).weights = [1, 5, 0];
