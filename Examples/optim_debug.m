@@ -37,7 +37,7 @@ net.setEvalFunc(@error_fn1);
 
 % Set weights in evaluation functions for ea. stage
 net.getStg(1).weights = [1, 5, 0];
-net.getStg(2).weights = [1, 5, 0];
+net.getStg(2).weights = [2, 3, 0];
 net.getStg(3).weights = [1, 0, 0];
 net.getStg(4).weights = [1, 0, 0];
 net.getStg(5).weights = [0, 0, 1];
