@@ -579,20 +579,32 @@ classdef Network < handle
 					stgk = obj.getStg(k+1); % Stage 'k'
 				end
 				
+				% If all stages optimzied, and recursively at end
+				% (load-side)
+				if k_ready == length(obj.stages) && k == k_ready
+					
+					rho_L = flatten((obj.ZL - obj.Z0)./(obj.ZL + obj.Z0));
+					
+					stgk_.eh(1,1,:) = flatten(stgk_.e(1,1,:)) + flatten(stgk_.e(2,1,:)).^2 .* rho_L ./ ( 1 - flatten(stgk_.e(2,2,:)) .* rho_L );
+					
+				else % Every other case...
+	
 % 				if k == 1
 % 					stgkp = obj.null_stage;
 % 				else
 % 					stgkp = obj.getStg(k-1); % Stage 'k-1'
 % 				end
 				
-				if k == k_ready
-					stgk_.SL(:) = stgk_.S(1,1,:);
-				else
-					stgk_.SL(:) = stgk_.S(1,1,:) + stgk_.S(1,2,:) .* stgk_.S(2,1,:) .* stgk.eh(1,1,:) ./ ( 1 - stgk_.S(2,2,:) .* stgk.eh(1,1,:) ) ;
+					if k == k_ready
+						stgk_.SL(:) = stgk_.S(1,1,:);
+					else
+						stgk_.SL(:) = stgk_.S(1,1,:) + stgk_.S(1,2,:) .* stgk_.S(2,1,:) .* stgk.eh(1,1,:) ./ ( 1 - stgk_.S(2,2,:) .* stgk.eh(1,1,:) ) ;
+					end
+
+					stgk_.eh(1,1,:) = flatten(stgk_.e(1,1,:)) + flatten(stgk_.e(2,1,:)).^2 .* flatten(stgk_.SL(:)) ./ ( 1 - flatten(stgk_.e(2,2,:)) .* flatten(stgk_.SL(:)));
+
 				end
 				
-				stgk_.eh(1,1,:) = flatten(stgk_.e(1,1,:)) + flatten(stgk_.e(2,1,:)).^2 .* flatten(stgk_.SL(:)) ./ ( 1 - flatten(stgk_.e(2,2,:)) .* flatten(stgk_.SL(:)));
-
 				% Redefinitions
 				%
 				% TODO: I think the eh(1,1,:) and SL calculations might be
@@ -623,9 +635,13 @@ classdef Network < handle
 				
 			end
 			
+			% TODO: Computing VSWR_out at anything other than last stage
+			% might not be valid. I'm computing it to prevent errors. Is
+			% there a better solution?
 			obj.vswr_in(:) = ( 1 + flatten(abs(obj.getStg(1).eh(1,1,:))) ) ./ ( 1 - flatten(abs(obj.getStg(1).eh(1,1,:))) );
+			obj.vswr_out(:) = ( 1 + flatten(abs(obj.getStg(k_ready).eh(2,2,:))) ) ./ ( 1 - flatten(abs(obj.getStg(k_ready).eh(2,2,:))) );
 			obj.getStg(k_ready).vswr_in_opt = obj.vswr_in(:);
-			obj.getStg(k_ready).vswr_out_opt = obj.vswr_in(:).*0;
+			obj.getStg(k_ready).vswr_out_opt = obj.vswr_out(:);
 			
 			
 		end %=============================== End compute_rcsv() ===========
