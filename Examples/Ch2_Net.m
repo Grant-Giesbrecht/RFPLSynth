@@ -1,5 +1,5 @@
 force_h0 = true;
-give_good_guess = true;
+give_good_guess = false;
 
 SParam_Q = sparameters("JB_Ch2_Ex_Q.s2p"); % Read transistor S-parameter data
 
@@ -13,8 +13,8 @@ net.setSPQ(SParam_Q); % Set all transistor S-parameters
 net.setFreqs(s_vec, s_raw);
 net.reset();
 net.showErrors = true;
-net.vswr_in_t = 1.5;
-net.vswr_out_t = 1.5;
+net.vswr_in_t = 2;
+net.vswr_out_t = 2;
 net.ZL = 50;
 net.Z0 = 50;
 
@@ -37,7 +37,7 @@ net.setEvalFunc(@error_fn1);
 
 % Set weights in evaluation functions for ea. stage
 net.getStg(1).weights = [1, 5, 0];
-net.getStg(2).weights = [1, 5, 0];
+net.getStg(2).weights = [2, 3, 0];
 net.getStg(3).weights = [1, 0, 0];
 net.getStg(4).weights = [1, 0, 0];
 net.getStg(5).weights = [0, 0, 1];
