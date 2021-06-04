@@ -1,5 +1,5 @@
 force_h0 = true;
-give_good_guess = true;
+give_good_guess = false;
 
 SParam_Q = sparameters("JB_Ch2_Ex_Q.s2p"); % Read transistor S-parameter data
 
@@ -65,6 +65,12 @@ for k=1:5
 end
 
 net.plotGain(1e9, 2);
+subplot(1,3,1);
+ylim([0, 23]);
+yticks(0:2.3:23);
+subplot(1,3,2);
+ylim([0, 23]);
+yticks(0:2.3:23);
 net.optimSummary();
 
 
@@ -136,12 +142,12 @@ for k=1:5
 	legend("MATLAB Optimzer", "J+B");
 end
 
-e1
-eJ1
-e2
-eJ2
-e3
-eJ3
+% e1
+% eJ1
+% e2
+% eJ2
+% e3
+% eJ3
 
 function error_sum = error_fn1(net, k)
 	
