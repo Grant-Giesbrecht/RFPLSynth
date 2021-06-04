@@ -1,4 +1,5 @@
 force_h0 = true;
+give_good_guess = true;
 
 SParam_Q = sparameters("JB_Ch2_Ex_Q.s2p"); % Read transistor S-parameter data
 
@@ -23,6 +24,14 @@ if force_h0
 	net.forceCoef(0, 0);
 end
 net.setHGuess(h_coef);
+
+if give_good_guess
+	net.getStg(1).weights = [-.7, -.4];
+	net.getStg(2).weights = [-.5, -.3];
+	net.getStg(3).weights = [-.3, -.1];
+	net.getStg(4).weights = [-.3, .1];
+	net.getStg(5).weights = [.5, .3];
+end
 
 net.setEvalFunc(@error_fn1);
 

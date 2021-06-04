@@ -52,12 +52,16 @@ displ(newline, "Stage 5 Polynomials:", newline, net.getStg(5).polystr());
 net.compute_rcsv();
 
 % Plot gains (Should match Fig. 2,10)
-net.plotGain(1e9, 1);
+net.plotGain(1e9, 5);
 
 % Set strange axes/tick spacings to match Fig. 2,10 of book for easier
 % comparison.
+subplot(1,3,1);
 yticks(0:2.3:23);
 ylim([0,23]);
+
+
+xlim([18.9, 21]);
 
 
 
