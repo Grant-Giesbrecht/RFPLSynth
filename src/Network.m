@@ -534,22 +534,32 @@ classdef Network < handle
 					stgk.gain_t(:) = min( product );
 				end
 
-				stgk.SL(:) = stgk.S(1,1,:);
-				stgk.eh(1,1,:) = flatten(stgk.e(1,1,:)) + flatten(stgk.e(2,1,:)).^2 .* flatten(stgk.SL(:)) ./ ( 1 - flatten(stgk.e(2,2,:)) .* flatten(stgk.SL(:)));
-
-				% Redefinitions
-				if k ~= 1
-					stgk_.SL(:) = stgk_.S(1,1,:) + stgk_.S(1,2,:) .* stgk_.S(2,1,:) .* stgk.eh(1,1,:) ./ ( 1 - stgk_.S(2,2,:) .* stgk.eh(1,1,:) ) ;
-					stgk_.eh(1,1,:) = flatten(stgk_.e(1,1,:)) + flatten(stgk_.e(2,1,:)).^2 .* flatten(stgk_.SL(:)) ./( 1 - flatten(stgk_.e(2,2,:)) .* flatten(stgk_.SL(:))) ;
-				end
-				obj.vswr_in(:) = ( 1 + flatten(abs(obj.getStg(1).eh(1,1,:))) ) ./ ( 1 - flatten(abs(obj.getStg(1).eh(1,1,:))) ); %TODO: This always uses stage 1 for calculation. Verify this is correct.
-				obj.vswr_out(:) = (1 + abs(flatten(stgk.eh(2,2,:)))) ./ ( 1 - abs(flatten(stgk.eh(2,2,:))) );
+% 				stgk.SL(:) = stgk.S(1,1,:);
+% 				stgk.eh(1,1,:) = flatten(stgk.e(1,1,:)) + flatten(stgk.e(2,1,:)).^2 .* flatten(stgk.SL(:)) ./ ( 1 - flatten(stgk.e(2,2,:)) .* flatten(stgk.SL(:)));
+% 
+% 				% Redefinitions
+% 				%
+% 				% TODO: I think the eh(1,1,:) and SL calculations might be
+% 				% wrong - they might need to chain backwards (ie. calc.
+% 				% SL(k), then eh(1,1)(k), then SL(k-)... eh(1,1)(1). Not
+% 				% clear to me. P. 53
+% 				%
+% 				
+				
+% 				if k ~= 1
+% 					stgk_.SL(:) = stgk_.S(1,1,:) + stgk_.S(1,2,:) .* stgk_.S(2,1,:) .* stgk.eh(1,1,:) ./ ( 1 - stgk_.S(2,2,:) .* stgk.eh(1,1,:) ) ;
+% 					stgk_.eh(1,1,:) = flatten(stgk_.e(1,1,:)) + flatten(stgk_.e(2,1,:)).^2 .* flatten(stgk_.SL(:)) ./( 1 - flatten(stgk_.e(2,2,:)) .* flatten(stgk_.SL(:))) ;
+% 				end
+% 				obj.vswr_in(:) = ( 1 + flatten(abs(obj.getStg(1).eh(1,1,:))) ) ./ ( 1 - flatten(abs(obj.getStg(1).eh(1,1,:))) ); %TODO: This always uses stage 1 for calculation. Verify this is correct.
+% 				obj.vswr_out(:) = (1 + abs(flatten(stgk.eh(2,2,:)))) ./ ( 1 - abs(flatten(stgk.eh(2,2,:))) );
+% 				obj.vswr_in(:) = [1,2,3,4];
+% 				obj.vswr_out(:) = [1,2,3,4];
 
 				% Save VSWR to stage that used this VSWR for optimization
-				if k == k_ready
-					stgk.vswr_in_opt = obj.vswr_in(:);
-					stgk.vswr_out_opt = obj.vswr_out(:);
-				end
+% 				if k == k_ready
+% 					stgk.vswr_in_opt = obj.vswr_in(:);
+% 					stgk.vswr_out_opt = obj.vswr_out(:);
+% 				end
 				
 				% Save new values back to network
 				obj.setStg(k, stgk); % Stage 'k'
@@ -558,6 +568,64 @@ classdef Network < handle
 				end
 			
 			end
+			
+			% Recursively, go through each stage - Backwards
+			for k = k_ready:-1:1
+				
+				% Prepare local variables for accessing and modifying
+				% stage data
+				stgk_ = obj.getStg(k); % Stage 'k-1'
+				if k < k_ready
+					stgk = obj.getStg(k+1); % Stage 'k'
+				end
+				
+% 				if k == 1
+% 					stgkp = obj.null_stage;
+% 				else
+% 					stgkp = obj.getStg(k-1); % Stage 'k-1'
+% 				end
+				
+				if k == k_ready
+					stgk_.SL(:) = stgk_.S(1,1,:);
+				else
+					stgk_.SL(:) = stgk_.S(1,1,:) + stgk_.S(1,2,:) .* stgk_.S(2,1,:) .* stgk.eh(1,1,:) ./ ( 1 - stgk_.S(2,2,:) .* stgk.eh(1,1,:) ) ;
+				end
+				
+				stgk_.eh(1,1,:) = flatten(stgk_.e(1,1,:)) + flatten(stgk_.e(2,1,:)).^2 .* flatten(stgk_.SL(:)) ./ ( 1 - flatten(stgk_.e(2,2,:)) .* flatten(stgk_.SL(:)));
+
+				% Redefinitions
+				%
+				% TODO: I think the eh(1,1,:) and SL calculations might be
+				% wrong - they might need to chain backwards (ie. calc.
+				% SL(k), then eh(1,1)(k), then SL(k-)... eh(1,1)(1). Not
+				% clear to me. P. 53
+				%
+				
+				
+% 				if k ~= 1
+% 					stgk_.SL(:) = stgk_.S(1,1,:) + stgk_.S(1,2,:) .* stgk_.S(2,1,:) .* stgk.eh(1,1,:) ./ ( 1 - stgk_.S(2,2,:) .* stgk.eh(1,1,:) ) ;
+% 					stgk_.eh(1,1,:) = flatten(stgk_.e(1,1,:)) + flatten(stgk_.e(2,1,:)).^2 .* flatten(stgk_.SL(:)) ./( 1 - flatten(stgk_.e(2,2,:)) .* flatten(stgk_.SL(:))) ;
+% 				end
+% 				obj.vswr_in(:) = ( 1 + flatten(abs(obj.getStg(1).eh(1,1,:))) ) ./ ( 1 - flatten(abs(obj.getStg(1).eh(1,1,:))) );
+% 				obj.vswr_out(:) = (1 + abs(flatten(stgk.eh(2,2,:)))) ./ ( 1 - abs(flatten(stgk.eh(2,2,:))) );
+
+				% Save VSWR to stage that used this VSWR for optimization
+% 				if k == k_ready
+% 					stgk.vswr_in_opt = obj.vswr_in(:);
+% 					stgk.vswr_out_opt = obj.vswr_out(:);
+% 				end
+
+				% Save new values back to network
+				obj.setStg(k, stgk_); % Stage 'k'
+				if k ~= k_ready
+					obj.setStg(k+1, stgk); % Stage 'k+1'
+				end
+				
+			end
+			
+			obj.vswr_in(:) = ( 1 + flatten(abs(obj.getStg(1).eh(1,1,:))) ) ./ ( 1 - flatten(abs(obj.getStg(1).eh(1,1,:))) );
+			obj.getStg(k_ready).vswr_in_opt = obj.vswr_in(:);
+			obj.getStg(k_ready).vswr_out_opt = obj.vswr_in(:).*0;
 			
 			
 		end %=============================== End compute_rcsv() ===========
