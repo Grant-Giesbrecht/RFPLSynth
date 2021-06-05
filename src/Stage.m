@@ -37,9 +37,7 @@ classdef Stage < handle
 		upper_bounds
 		
 		h_init_guess
-		
-		targets
-		
+				
 		% Frequencies
 		% NOTE: s_vec is in the laplace domain (ie. sigma + j*omega) and
 		% thus the frequency must be encoded as the imaginary component of
@@ -54,6 +52,7 @@ classdef Stage < handle
 		s_vec
 		
 		forcedCoefs
+		targets
 		
 		vswr_in_opt
 		vswr_out_opt
@@ -101,7 +100,6 @@ classdef Stage < handle
 		function obj = Stage() %=================== Initializer ===========
 			
 			obj.weights = [];
-			obj.targets = [];
 			obj.eval_func = @(h) error("Need to initialize function 'eval_func'");
 			
 			obj.recompute = true;
@@ -126,6 +124,7 @@ classdef Stage < handle
 			obj.gain_m = [];
 			
 			obj.forcedCoefs = containers.Map;
+			obj.targets = containers.Map;
 			
 			obj.optim_out = [];
 			
