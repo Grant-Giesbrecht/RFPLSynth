@@ -22,7 +22,7 @@ net.Z0 = 1; % Intermediate terminating impedance
 net.getStg(1).targets('ZIN') = Zin;
 
 % Initialize h-guess
-h_coef = [1, 1, 0];
+h_coef = [0, 0, 1, 1, 0];
 net.setHGuess(h_coef);
 
 net.setEvalFunc(@error_fn_zin);
