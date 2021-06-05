@@ -53,6 +53,7 @@ classdef Stage < handle
 		
 		forcedCoefs
 		targets
+		evaluation_parameters
 		
 		vswr_in_opt
 		vswr_out_opt
@@ -103,6 +104,7 @@ classdef Stage < handle
 			obj.eval_func = @(h) error("Need to initialize function 'eval_func'");
 			
 			obj.recompute = true;
+			obj.SPQ = NaN;
 			
 			obj.e = [];
 			
@@ -125,6 +127,7 @@ classdef Stage < handle
 			
 			obj.forcedCoefs = containers.Map;
 			obj.targets = containers.Map;
+			obj.evaluation_parameters = containers.Map;
 			
 			obj.optim_out = [];
 			
@@ -165,13 +168,24 @@ classdef Stage < handle
 			obj.gain = zeros(1,m);
 			obj.gain_m = zeros(1,m);
 			
-			idx = 1;
-			for fr = obj.freqs
-				obj.S(1,1,idx) = getParam(1,1,fr, obj.SPQ);
-				obj.S(2,1,idx) = getParam(2,1,fr, obj.SPQ);
-				obj.S(1,2,idx) = getParam(1,2,fr, obj.SPQ);
-				obj.S(2,2,idx) = getParam(2,2,fr, obj.SPQ);
-				idx = idx + 1;
+			if ~isnan(obj.SPQ) % Initialize S-Parameters from SPQ sparameters object
+				idx = 1;
+				for fr = obj.freqs
+					obj.S(1,1,idx) = getParam(1,1,fr, obj.SPQ);
+					obj.S(2,1,idx) = getParam(2,1,fr, obj.SPQ);
+					obj.S(1,2,idx) = getParam(1,2,fr, obj.SPQ);
+					obj.S(2,2,idx) = getParam(2,2,fr, obj.SPQ);
+					idx = idx + 1;
+				end
+			else % Initialize S-Parameters with ideal form
+				idx = 1;
+				for fr = obj.freqs
+					obj.S(1,1,idx) = 0;
+					obj.S(2,1,idx) = 1;
+					obj.S(1,2,idx) = 1;
+					obj.S(2,2,idx) = 0;
+					idx = idx + 1;
+				end
 			end
 			
 		end %============================== End setFreqs() =============
