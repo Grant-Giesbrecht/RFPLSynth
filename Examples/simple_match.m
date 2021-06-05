@@ -22,47 +22,45 @@ net.Z0 = 1; % Intermediate terminating impedance
 net.getStg(1).targets('ZIN') = Zin;
 
 % Initialize h-guess
-h_coef = [-1, 1, -1, 1, 0];
+h_coef = [1, 1, 0];
 net.setHGuess(h_coef);
 
 net.setEvalFunc(@error_fn_zin);
 
 % Set weights in evaluation functions for ea. stage
-net.getStg(1).weights = 1e6;
+net.getStg(1).weights = [1, 1];
 
 
 % Prepare the Levenberg-Marquardt optimization algorithm
 default_tol = 1e-6;
 default_iter = 400;
+default_step = 1e-6;
 default_funceval = 100*numel(net.getStg(1).h_init_guess);
-options = optimoptions('lsqcurvefit','Algorithm','levenberg-marquardt', 'FunctionTolerance', default_tol/100/100);
+options = optimoptions('lsqcurvefit','Algorithm', 'levenberg-marquardt', 'FunctionTolerance', default_tol/100/100);
 % options.MaxFunctionEvaluations = 6e3;
 % options.MaxIterations = 4e3;
 options.MaxIterations = default_iter*100;
 options.MaxFunctionEvaluations = default_funceval*100;
-options.Display = 'none';
+options.StepTolerance = default_step/1000;
+% options.Display = 'none';
 
 net.setOptOptions(options);
 
 net.optimize(1, 'simple');
 
+disp(' ');
 net.optimSummary();
 
 stg = net.getStg(1);
 
 figure(4);
-yyaxis left;
 hold off;
 plot(freqs, real(stg.evaluation_parameters('ZIN')), 'Color', [0, 0, .8], 'LineStyle', '--', 'LineWidth', 1);
 hold on;
 plot(freqs, R, 'Color', [0, 0, .8], 'LineStyle', ':', 'LineWidth', 1.8);
-ylabel('Re\{Zin\} (Ohms)');
-yyaxis right;
-hold off;
 plot(freqs, imag(stg.evaluation_parameters('ZIN')), 'Color', [.8, 0, 0], 'LineStyle', '--', 'LineWidth', 1);
-hold on;
 plot(freqs, X, 'Color', [.8, 0, 0], 'LineStyle', ':', 'LineWidth', 1.8);
-ylabel('Im\{Zin\} (Ohms)');
+ylabel('Z_{in} (a.u.)');
 xlabel('Freq (GHz)');
 title("Optimization Match Quality");
 legend("Optimized, Real" ,"Target, Real", "Optimized, Imag", "Target, Real", 'Location', 'West')
@@ -78,9 +76,13 @@ function error_sum = error_fn_zin(net, k)
 
 	net.setStg(k, stg);
 	
-	zin_term = stg.weights(1) * (Zin ./ stg.targets('ZIN') - 1).^2;
+	re_term = stg.weights(1) * (real(Zin) ./ real(stg.targets('ZIN')) - 1).^2;
+	im_term = stg.weights(2) * (imag(Zin) ./ imag(stg.targets('ZIN')) - 1).^2;
+	
+% 	zin_term = stg.weights(1) * (Zin ./ stg.targets('ZIN') - 1).^2;
 
-	error_sum = sum(zin_term);
+% 	error_sum = sum(zin_term);
+	error_sum = sum(re_term + im_term);
 
 end
 
