@@ -25,6 +25,7 @@ if force_h0
 end
 net.setHGuess(h_coef);
 
+% TODO: This is supposed to be affecting the h_coefs!
 if give_good_guess
 	net.getStg(1).weights = [-.7, -.4];
 	net.getStg(2).weights = [-.5, -.3];
@@ -65,9 +66,10 @@ for k=1:5
 end
 
 net.plotGain(1e9, 2);
+disp(' ');
 net.optimSummary();
 
-
+license('inuse')
 
 function error_sum = error_fn1(net, k)
 	
