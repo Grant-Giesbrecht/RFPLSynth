@@ -1,6 +1,17 @@
 # RFPL_SRFT
 Automatic uWave Network Synthesis in MATLAB
 
+## Installation Process
+
+### Dependencies
+
+ * MSTD (https://github.com/Grant-Giesbrecht/MSTD)
+ * Toolboxes:
+ 	* control_toolbox
+	* optimization_toolbox
+	* rf_toolbox
+
+
 ## Basic Info
 This reposity implements the Simplified Real Frequency Technique (SRFT) as
 described by P. Jarry & J. Beneat in "Microwave Amplifier and Active Circuit
