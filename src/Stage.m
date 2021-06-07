@@ -168,7 +168,7 @@ classdef Stage < handle
 			obj.gain = zeros(1,m);
 			obj.gain_m = zeros(1,m);
 			
-			if ~isnan(obj.SPQ) % Initialize S-Parameters from SPQ sparameters object
+			if strcmp(class(obj.SPQ), 'sparameters') % Initialize S-Parameters from SPQ sparameters object
 				idx = 1;
 				for fr = obj.freqs
 					obj.S(1,1,idx) = getParam(1,1,fr, obj.SPQ);

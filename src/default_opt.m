@@ -1,4 +1,9 @@
 function error_sum = default_opt(h_vec, net, k)
+% DEFAULT_OPT Default optimization function for Network class
+%
+%	error_sum = DEFAULT_OPT(H_VEC, NET, K) Evaluates the coefficients H_VEC
+%	in the network NET for stage K and returns the error value, as
+%	calculated by the stage's eval_func parameter.
 
 	stg = net.getStg(k);
 	stg.compute_fsimple(h_vec);
