@@ -257,7 +257,7 @@ classdef Stage < handle
 			G = hfsimple2G(obj.h, 0);
 
 			% Calculate g(s) from G(s) by selecting left-hand side roots of G(s)
-			obj.g = JB_lhrpoly(G);
+			obj.g = lhrpoly(G);
 
 			% Normalize g(s) so g0 = 1, as this is required by how we defined f(s)
 			% in this simplified example

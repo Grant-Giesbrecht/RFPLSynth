@@ -192,7 +192,7 @@ function error_sum = error_function_stg2(h_vec, s_vec, net, stg_no, vswr_in_t, S
 	G = hfsimple2G(h, 0);
 	
 	% Calculate g(s) from G(s) by selecting left-hand side roots of G(s)
-	g = JB_lhrpoly(G);
+	g = lhrpoly(G);
 	
 	% Normalize g(s) so g0 = 1, as this is required by how we defined f(s)
 	% in this simplified example
@@ -298,7 +298,7 @@ function error_sum = error_function(h_vec, s_vec, W1, W2, vswr_in_t, SParam_Q, s
 	G = hfsimple2G(h, 0);
 	
 	% Calculate g(s) from G(s) by selecting left-hand side roots of G(s)
-	g = JB_lhrpoly(G);
+	g = lhrpoly(G);
 	
 	% Normalize g(s) so g0 = 1, as this is required by how we defined f(s)
 	% in this simplified example

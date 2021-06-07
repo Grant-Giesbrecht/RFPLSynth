@@ -1,4 +1,4 @@
-function g = JB_lhrpoly(G)
+function g = lhrpoly(G)
 %
 % Calculates left-hand roots polynomial:
 % Calculates g(s) from G(s) by finding G(s)'s roots, selecting the roots in
