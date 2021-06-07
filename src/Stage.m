@@ -252,9 +252,9 @@ classdef Stage < handle
 			% NOTE: In this example, we no zeros appear in f(s), ie. f(s) = 1. 'k' is
 			% usually used by JB to describe the number of stages, however here they're
 			% using it to describe the number of zeros in f(s)/g(s), and thus in the
-			% function JB_hfsimple2G the term 'k' is used to describe the numerator,
+			% function hfsimple2G the term 'k' is used to describe the numerator,
 			% ie. number of zeros.
-			G = JB_hfsimple2G(obj.h, 0);
+			G = hfsimple2G(obj.h, 0);
 
 			% Calculate g(s) from G(s) by selecting left-hand side roots of G(s)
 			obj.g = JB_lhrpoly(G);

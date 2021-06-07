@@ -1,4 +1,4 @@
-function Gs2 = JB_hfsimple2G(h, k)
+function Gs2 = hfsimple2G(h, k)
 %
 % Computes G(s^2) polynomial from f(s) and h(s), and assumes f(s) = =/- s^k.
 %
