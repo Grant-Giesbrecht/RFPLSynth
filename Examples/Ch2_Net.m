@@ -55,6 +55,7 @@ default_funceval = 100*numel(net.getStg(1).h_init_guess);
 options = optimoptions('lsqcurvefit','Algorithm','levenberg-marquardt', 'FunctionTolerance', default_tol/100/100);
 % options.MaxFunctionEvaluations = 6e3;
 % options.MaxIterations = 4e3;
+options.UseParallel = false;
 options.MaxIterations = default_iter*100;
 options.MaxFunctionEvaluations = default_funceval*100;
 options.Display = 'none';
