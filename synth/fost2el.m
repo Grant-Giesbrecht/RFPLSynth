@@ -13,8 +13,10 @@ function [L,C] = fost2comp(sp)
 	[n,d] = numden(sp);
 	
 	% Convert to polynomial class
-	num = Polynomial(double(coeffs(n, 'All')));
-	den = Polynomial(double(coeffs(d, 'All')));
+	num = Polynomial(0);
+	den = Polynomial(0);
+	num.setVec(double(coeffs(n, 'All')));
+	den.setVec(double(coeffs(d, 'All')));
 	
 	% Check that numerator is correct order
 	if num.order() ~= 1
@@ -25,7 +27,7 @@ function [L,C] = fost2comp(sp)
 	end
 	
 	% Check that denominator is correct order
-	if den.order() ~= 2
+	if den.order() ~= 2 && den.order() ~= 0
 		L = NaN;
 		C = NaN;
 		disp("Input polynomial is wrong format. Denominator must be order 2.");
