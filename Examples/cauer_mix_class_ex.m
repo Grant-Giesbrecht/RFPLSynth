@@ -5,3 +5,8 @@ synth = NetSynth(Z_num, Z_den);
 
 synth.cauer2();
 synth.cauer1();
+
+displ("Circuit Output:");
+for c=synth.circ
+	displ("  ", c.str());
+end
