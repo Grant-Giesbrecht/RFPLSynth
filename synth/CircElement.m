@@ -21,6 +21,24 @@ classdef CircElement < handle
 			obj.part_no = ""; % Part number/identifier. Can be for physical part number in manufacturing, or to distiguish type of element
 			obj.props = containers.Map; % Other properties (ex. for transmission lines)
 		end
+		
+		function s = str(obj)
+			
+			% Create node string
+			nodestr = "";
+			for n=obj.nodes
+				
+				% Add junction if not first element
+				if ~strcmp(nodestr, "")
+					nodestr = strcat(nodestr, "-");
+				end
+				
+				nodestr = strcat(nodestr, n);
+			end
+			
+			s = strcat(num2str(obj.val), " ", obj.val_unit, "   (", nodestr, ")");
+			
+		end
 	end
 	
 end
