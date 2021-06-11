@@ -14,6 +14,8 @@ classdef NetSynth < handle
 		
 		node_iterator
 		current_node
+		input_node
+		output_node 
 		
 	end
 	
@@ -32,13 +34,16 @@ classdef NetSynth < handle
 			
 			obj.node_iterator = 1;
 			obj.current_node = "IN";
+			obj.input_node = obj.current_node;
+			obj.output_node = "?";
+			
 			
 		end
 		
-		function cauer1(obj)
+		function cauer2(obj) %============ cauer2() =======================
 			
 			% Perform Cauer I-form Synthesis
-			[k, tn, td] = cauer1el(obj.c_num, obj.c_den);
+			[k, tn, td] = cauer2el(obj.c_num, obj.c_den);
 			
 			% Create circuit element from output of Cauer-I
 			if obj.c_isadm % Is an admittance
@@ -61,32 +66,33 @@ classdef NetSynth < handle
 				
 				% Update next node
 				obj.node_iterator = obj.node_iterator + 1;
-				obj.currnet_node = ce.nodes(2);
+				obj.current_node = ce.nodes(2);
 			end
 
 			% Add circuit element to network
 			obj.circ = addTo(obj.circ, ce);
 			
-			% Toggle if in admittance mode
-			obj.c_isadm = ~obj.c_isadm;
-			
 			% Update numerator & denominator
 			obj.c_num = tn;
 			obj.c_den = td;
 			
-			% Check if resulting num/den is 1 element
-			if iselement(tn, td)
-				obj.c_finished = true;
+			% Check for last element
+			last_elem = obj.getlastelement(tn, td);
+			if ~isempty(last_elem)
+				obj.circ = addTo(obj.circ, last_elem);
 				
-				%TODO: Add last element
+				obj.c_finished = true;
 			end
 			
-		end
+			% Toggle if in admittance mode
+			obj.c_isadm = ~obj.c_isadm;
+			
+		end %================== END cauer2() ==============================
 		
-		function cauer2(obj)
+		function cauer1(obj) %=================== cauer1() ================
 			
 			% Perform Cauer II-form Synthesis
-			[k, tn, td] = cauer2el(obj.c_num, obj.c_den);
+			[k, tn, td] = cauer1el(obj.c_num, obj.c_den);
 			
 			% Create circuit element from output of Cauer-II
 			if obj.c_isadm % Is an admittance
@@ -116,21 +122,75 @@ classdef NetSynth < handle
 			% Add circuit element to network
 			obj.circ = addTo(obj.circ, ce);
 			
-			% Toggle if in admittance mode
-			obj.c_isadm = ~obj.c_isadm;
-			
 			% Update numerator & denominator
 			obj.c_num = tn;
 			obj.c_den = td;
 			
-			% Check if resulting num/den is 1 element
-			if iselement(tn, td)
-				obj.c_finished = true;
+			% Check for last element
+			last_elem = obj.getlastelement(tn, td);
+			if ~isempty(last_elem)
+				obj.circ = addTo(obj.circ, last_elem);
 				
-				%TODO: Add last element
+				obj.c_finished = true;
 			end
 			
-		end
+			% Toggle if in admittance mode
+			obj.c_isadm = ~obj.c_isadm;
+			
+		end %======================== END cauer1() ========================
+		
+		function ce = getlastelement(obj, tn, td) %== getlastelement =
+
+			% Get K-value and position of 's' variable
+			if iselement(td, tn, "NUM") % Check if in numerator
+				in_num = true;
+				k_end = td(end-1)/tn(end);
+			elseif iselement(td, tn, "DEN") % CHeck if in denom.
+				in_num = false;
+				k_end = td(end)/tn(end-1);
+			else % Else, exit
+				ce = [];
+				return;
+			end
+
+			% Create circuit element from output of Cauer-II
+			if obj.c_isadm % Is an admittance
+
+				% Create circuit element
+				if in_num
+					ce = CircElement(k_end, "F"); % C = k
+				else
+					ce = CircElement(1/k_end, "H"); % L = 1/k
+				end
+				% Set nodes
+				ce.nodes(1) = obj.current_node;
+				ce.nodes(2) = "GND";
+				
+				% Mark end node
+				obj.output_node = ce.nodes(1);
+
+			else % Is an impedance
+
+				% Create circuit element
+				if in_num
+					ce = CircElement(k_end, "H"); % L = k
+				else
+					ce = CircElement(1/k_end, "F"); % C = 1/k
+				end
+
+				% Set nodes
+				ce.nodes(1) = obj.current_node;
+				ce.nodes(2) = strcat("n", num2str(obj.node_iterator));
+
+				% Mark end node
+				obj.output_node = ce.nodes(2);
+				
+				% Update next node (TODO: remove?)
+				obj.node_iterator = obj.node_iterator + 1;
+				obj.current_node = ce.nodes(2);
+			end
+
+		end %================== END getlastelement() ======================
 		
 	end
 	
