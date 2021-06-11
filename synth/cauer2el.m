@@ -39,13 +39,15 @@ function [k, Tn, Td] = cauer2el(num, den)
 	% of some number divided by 's'. 
 	for t=terms
 		
-		% To check order, need to pull out denomenator
-		[N, D] = numden(t);
+		% To check order, need to pull out denomenator (as vectors)
+		[nv, dv] = sym2nd(t);
 		
-		% Check if denominator is order 1 polynomial (ie. term = num/s)
-		if polynomialDegree(D) == 1 && polynomialDegree(N) == 0
+		% Check 't' describes a circuit element with an 's' in the
+		% denominator
+		
+		if iselement(nv, dv, 'den')
 			k_term = t; %TODO: Replace with addTo incase there are mult num/s terms? (there shouldnt be)
-		else
+		else % Does not look like element, add to denominator
 			remainder_terms = addTo(remainder_terms, t);
 		end
 		
