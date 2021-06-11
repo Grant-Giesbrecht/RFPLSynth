@@ -34,7 +34,7 @@ function [Ls, Cs] = foster2(Zn, Zd)
 	for t = terms
 
 		% Get Foster elements
-		[C, L] = fost2el(t);
+		[C, L] = fosterXel(t);
 
 		% Add to list
 		Ls = addTo(Ls, L);
