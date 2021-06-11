@@ -1,4 +1,4 @@
-classdef NetSynth < hanlde
+classdef NetSynth < handle
 	
 	properties
 		
@@ -8,6 +8,7 @@ classdef NetSynth < hanlde
 		c_isadm % Is modelling admittance
 		c_num % Numerator poly
 		c_den % Denominator poly
+		c_finished = true; % True when completed
 		
 		circ
 		
@@ -18,13 +19,14 @@ classdef NetSynth < hanlde
 	
 	methods
 		
-		function obj = NetSynth(init_stg)			
+		function obj = NetSynth(num, den)			
 			
 % 			obj.stg = init_stg;
 			
 			obj.c_isadm = false;
-			obj.c_num = [];
-			obj.c_den = [];
+			obj.c_num = num;
+			obj.c_den = den;
+			obj.c_finished = false;
 			
 			obj.circ = [];
 			
@@ -72,6 +74,13 @@ classdef NetSynth < hanlde
 			obj.c_num = tn;
 			obj.c_den = td;
 			
+			% Check if resulting num/den is 1 element
+			if iselement(tn, td)
+				obj.c_finished = true;
+				
+				%TODO: Add last element
+			end
+			
 		end
 		
 		function cauer2(obj)
@@ -113,6 +122,13 @@ classdef NetSynth < hanlde
 			% Update numerator & denominator
 			obj.c_num = tn;
 			obj.c_den = td;
+			
+			% Check if resulting num/den is 1 element
+			if iselement(tn, td)
+				obj.c_finished = true;
+				
+				%TODO: Add last element
+			end
 			
 		end
 		
