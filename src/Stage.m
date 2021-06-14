@@ -275,6 +275,23 @@ classdef Stage < handle
 
 		end %===================== End compute_fsimple() ==================
 
+		function [zp, znum, zden] = zpoly(obj) %========== zpoly ========================
+			
+			% Generate symbolic polynomails from h and g
+			syms s;
+			hsp = poly2sym(obj.h.getVec(), s);
+			gsp = poly2sym(obj.g.getVec(), s);
+			
+			% Create e_11 sym. polynomial
+			e11_poly = hsp/gsp;
+			
+			% Calculate z sym. poly.
+			zp = (1+e11_poly)/(1-e11_poly);
+			
+			% Pull numerator, denominator out of zp
+			[znum, zden] = numden(zp);
+			
+		end %======================= END zpoly() ==========================
 		
 	end
 	
