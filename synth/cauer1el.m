@@ -13,11 +13,21 @@ function [k, Tn, Td] = cauer1el(num, den)
 	Tn = den;
 	Td = rem;
 	
-	% Trim zeros from Tn
-	idx = find(Tn, 1, 'first');
-	Tn = Tn(idx:end);
 	
-	% Trim zeros from Td
-	idx = find(Td, 1, 'first');
-	Td = Td(idx:end);
+	if length(find(Tn==0)) == length(Tn) % Check if Tn is only zeros
+		Tn = 0; 
+	else
+		% Trim zeros from Tn
+		idx = find(Tn, 1, 'first');
+		Tn = Tn(idx:end);
+	end
+	
+	if length(find(Td==0)) == length(Td) % Check if Td is only zeros
+		Td = 0;
+	else
+		% Trim zeros from Td
+		idx = find(Td, 1, 'first');
+		Td = Td(idx:end);
+	end
+	
 end
