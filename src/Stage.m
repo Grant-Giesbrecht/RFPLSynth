@@ -290,6 +290,8 @@ classdef Stage < handle
 			
 			% Pull numerator, denominator out of zp
 			[znum, zden] = numden(zp);
+			znum = Polynomial(double(coeffs(znum, 'All')));
+			zden = Polynomial(double(coeffs(zden, 'All')));
 			
 		end %======================= END zpoly() ==========================
 		

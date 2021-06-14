@@ -136,6 +136,9 @@ classdef NetSynth < handle
 				obj.c_finished = true;
 			end
 			
+			%TODO: Check if c_finished already true (could be true if
+			%remainder == 0), ie. td = 0
+			%
 			% Check for last element
 			last_elem = obj.getlastelement(tn, td);
 			if ~isempty(last_elem)
