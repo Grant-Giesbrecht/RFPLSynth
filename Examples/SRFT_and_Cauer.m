@@ -7,82 +7,89 @@
 %							SRFT Algorithm								  %
 %=========================================================================%
 
-% SParam_Q = sparameters("JB_Ch2_Ex_Q.s2p"); % Read transistor S-parameter data
-% 
-% force_h0 = true;
-% 
-% s_raw = sqrt(-1).*[18, 19, 20, 21].*1e9;
-% f_scale = 21e9;
-% s_vec = s_raw./f_scale;
-% 
-% % Create network object
-% net = Network(4);
-% net.setSPQ(SParam_Q); % Set all transistor S-parameters
-% net.setFreqs(s_vec, s_raw);
-% net.reset();
-% net.showErrors = true;
-% net.vswr_in_t = 2;
-% net.vswr_out_t = 2;
-% net.ZL = 50;
-% net.Z0 = 50;
-% 
-% % Create initial h(s) guess
-% h_coef = [1,1,0];
-% if force_h0
-% 	h_coef = [1, 1];
-% 	net.forceCoef(0, 0);
-% end
-% net.setHGuess(h_coef);
-% 
-% % Set error function
-% net.setEvalFunc(@error_fn);
-% 
-% % Set weights in evaluation functions for ea. stage
-% net.getStg(1).weights = [1, 5, 0];
-% net.getStg(2).weights = [2, 3, 0];
-% net.getStg(3).weights = [1, 0, 0];
-% net.getStg(4).weights = [1, 0, 0];
-% net.getStg(5).weights = [0, 0, 1];
-% 
-% % Prepare the Levenberg-Marquardt optimization options
-% default_tol = 1e-6;
-% default_iter = 400;
-% default_funceval = 100*numel(net.getStg(1).h_init_guess);
-% options = optimoptions('lsqcurvefit','Algorithm','levenberg-marquardt', 'FunctionTolerance', default_tol/100/100);
-% options.UseParallel = false;
-% options.MaxIterations = default_iter*100;
-% options.MaxFunctionEvaluations = default_funceval*100;
-% options.Display = 'none';
-% 
-% %TODO: Build this in as default options, getOptOptions() to modify
-% net.setOptOptions(options);
-% 
-% % Run through each stage and optimize
-% for k=1:5
-% 	net.optimize(k, 'simple');
-% end
-% 
-% % Plot results
-% net.plotGain(1e9, 2);
-% disp(' ');
-% net.optimSummary();
+synth_f_scale = 21e9*2*pi;
+synth_Z0_scale = 50;
+
+SParam_Q = sparameters("JB_Ch2_Ex_Q.s2p"); % Read transistor S-parameter data
+
+force_h0 = true;
+
+s_raw = sqrt(-1).*[18, 19, 20, 21].*1e9;
+f_scale = 21e9;
+s_vec = s_raw./f_scale;
+
+% Create network object
+net = Network(4);
+net.setSPQ(SParam_Q); % Set all transistor S-parameters
+net.setFreqs(s_vec, s_raw);
+net.reset();
+net.showErrors = true;
+net.vswr_in_t = 2;
+net.vswr_out_t = 2;
+net.ZL = 50;
+net.Z0 = 50;
+
+% Create initial h(s) guess
+h_coef = [1,1,0];
+if force_h0
+	h_coef = [1, 1];
+	net.forceCoef(0, 0);
+end
+net.setHGuess(h_coef);
+
+% Set error function
+net.setEvalFunc(@error_fn);
+
+% Set weights in evaluation functions for ea. stage
+net.getStg(1).weights = [1, 5, 0];
+net.getStg(2).weights = [2, 3, 0];
+net.getStg(3).weights = [1, 0, 0];
+net.getStg(4).weights = [1, 0, 0];
+net.getStg(5).weights = [0, 0, 1];
+
+% Prepare the Levenberg-Marquardt optimization options
+default_tol = 1e-6;
+default_iter = 400;
+default_funceval = 100*numel(net.getStg(1).h_init_guess);
+options = optimoptions('lsqcurvefit','Algorithm','levenberg-marquardt', 'FunctionTolerance', default_tol/100/100);
+options.UseParallel = false;
+options.MaxIterations = default_iter*100;
+options.MaxFunctionEvaluations = default_funceval*100;
+options.Display = 'none';
+
+%TODO: Build this in as default options, getOptOptions() to modify
+net.setOptOptions(options);
+
+% Run through each stage and optimize
+for k=1:5
+	net.optimize(k, 'simple');
+end
+
+% Plot results
+net.plotGain(1e9, 2);
+disp(' ');
+net.optimSummary();
 
 
 %=========================================================================%
-%							Cauer Synthesis								  %
+%					Cauer Synthesis for Stage 1							  %
 %=========================================================================%
 
 %Generate Z from 
-Z_num = [.794, 1];
-Z_den = [.668, 1.239, 1];
+[Zpoly, Zn, Zd] = net.getStg(1).zpoly();
 
 % Generate network synthesizer
-synth = NetSynth(Z_num, Z_den);
-% synth.c_isadm(1);
+synth = NetSynth(Zn.getVec(), Zd.getVec());
 
-synth.cauer1();
-synth.cauer1();
-synth.cauer1();
+% Run cauer synthesis
+count = 0;
+while ~synth.c_finished
+	synth.cauer1();
+	count = count +1;
+	if  count > 10
+		error("Maximum number of Cauer executions exceeded");
+	end
+end
 
 displ("Circuit Output:");
 for c=synth.circ
@@ -90,7 +97,26 @@ for c=synth.circ
 end
 
 
+% Scale circuit
+for elmt=synth.circ
+	
+	% Scale by frequency
+	elmt.val = elmt.val/synth_f_scale;
+	
+	% Scale by Z0
+	if strcmp(elmt.nodes(2), "GND") %If is an admittance...
+		elmt.val = elmt.val/synth_Z0_scale;
+	else % Else if an impedance
+		elmt.val = elmt.val*synth_Z0_scale;
+	end
+	
+end
 
+% Display result
+displ("Scaled Circuit Output:");
+for c=synth.circ
+	displ("  ", c.str());
+end
 
 
 
