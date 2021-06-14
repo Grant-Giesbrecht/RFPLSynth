@@ -2,7 +2,7 @@ classdef NetSynth < handle
 	
 	properties
 		
-% 		stg % Stage to synthesize
+		stg % Stage to synthesize
 		
 		% Parameters for Cauer 1st and 2nd for Synthesis
 		c_isadm % Is modelling admittance
@@ -15,28 +15,51 @@ classdef NetSynth < handle
 		node_iterator
 		current_node
 		input_node
-		output_node 
+		output_node
+		
+		msg
 		
 	end
 	
 	methods
 		
-		function obj = NetSynth(num, den)			
+		function obj = NetSynth(stg_num, den)			
 			
-% 			obj.stg = init_stg;
+			% Check if user is initializing with numerator and denominator
+			% vectors, or with Stage class.
+			if isa(stg_num, 'double')
+				
+				num = stg_num;
+				
+				obj.stg = [];
+				
+			elseif isa(stg_num, 'Stage')
+				
+				%Generate Zin(s) from stage
+				[~, Zn, Zd] = stg_num.zpoly();
+
+				% Get polynomial vectors
+				num = Zn.getVec();
+				den = Zd.getVec();
+				
+				% Save stage
+				obj.stg = stg_num;
+				
+			end
 			
 			obj.c_isadm = false;
 			obj.c_num = num;
 			obj.c_den = den;
 			obj.c_finished = false;
 			
-			obj.circ = [];
+			obj.circ = Netlist([]);
 			
 			obj.node_iterator = 1;
 			obj.current_node = "IN";
 			obj.input_node = obj.current_node;
 			obj.output_node = "?";
 			
+			obj.msg = [""];
 			
 		end
 		
@@ -70,7 +93,7 @@ classdef NetSynth < handle
 			end
 
 			% Add circuit element to network
-			obj.circ = addTo(obj.circ, ce);
+			obj.circ.add(ce);
 			
 			% Update numerator & denominator
 			obj.c_num = tn;
@@ -84,7 +107,7 @@ classdef NetSynth < handle
 			% Check for last element
 			last_elem = obj.getlastelement(tn, td);
 			if ~isempty(last_elem)
-				obj.circ = addTo(obj.circ, last_elem);
+				obj.circ.add(last_elem);
 				
 				obj.c_finished = true;
 			end
@@ -125,7 +148,7 @@ classdef NetSynth < handle
 			end
 			
 			% Add circuit element to network
-			obj.circ = addTo(obj.circ, ce);
+			obj.circ.add(ce);
 			
 			% Update numerator & denominator
 			obj.c_num = tn;
@@ -142,7 +165,7 @@ classdef NetSynth < handle
 			% Check for last element
 			last_elem = obj.getlastelement(tn, td);
 			if ~isempty(last_elem)
-				obj.circ = addTo(obj.circ, last_elem);
+				obj.circ.add(last_elem);
 				
 				obj.c_finished = true;
 			end
@@ -204,6 +227,91 @@ classdef NetSynth < handle
 			end
 
 		end %================== END getlastelement() ======================
+		
+		function generate(obj, varargin)
+			
+			%================= Parse Function Inputs ===================
+			
+			expectedRoutines = {'Automatic', 'Cauer1', 'Cauer2', 'Foster1', 'Foster2'};
+			
+			p = inputParser;
+			p.addRequired('Routine', @(x) any(validatestring(x,expectedRoutines))   );
+			p.addParameter('MaxEval', 20, @(x) x > 0);
+			p.addParameter('Simplification', 0, @(x) x >= 0); %TODO: Implement
+			p.addParameter('f_scale', 1, @(x) x > 0);
+			p.addParameter('Z0_scale', 1, @(x) x > 0);
+			
+			p.parse(varargin{:});
+			
+			routine = string(p.Results.Routine);
+			
+			% Call appropriate function
+			switch routine
+				case "Cauer1"
+					obj.genCauer1(p);
+					
+				case "Cauer2"
+					obj.genCauer2(p);
+				case "Foster1"
+					obj.genFoster1(p);
+				case "Foster2"
+					obj.genFoster2(p);
+				otherwise
+					error("Unexpected value for routine");
+					
+			end
+			
+			
+		end %==================== END generate() =========================
+		
+		function genCauer1(obj, p)
+			
+			maxEval = p.Results.MaxEval;
+			synth_f_scale = p.Results.f_scale;
+			synth_Z0_scale = p.Results.Z0_scale;
+			
+			% Run cauer synthesis until entire circuit is extracted
+			count = 0;
+			while ~obj.c_finished % Check if completely extracted
+				
+				% Rerun Cauer-1 algorithm
+				obj.cauer1();
+				
+				% Increment counter
+				count = count +1;
+				if  count > maxEval
+					error("Maximum number of Cauer executions exceeded");
+				end
+			end
+			
+			% Scale circuit
+			for elmt=obj.circ.components
+
+				% Scale by frequency
+				elmt.val = elmt.val/synth_f_scale;
+
+				% Scale by Z0
+				if strcmp(elmt.nodes(2), "GND") %If is an admittance...
+					elmt.val = elmt.val/synth_Z0_scale;
+				else % Else if an impedance
+					elmt.val = elmt.val*synth_Z0_scale;
+				end
+
+			end
+			
+		end
+		
+		function genCauer2(obj, p)
+			warning("Cauer II-form not implemented!"); %TODO: Implement
+		end
+		
+		function genFoster1(obj, p)
+			warning("Foster I-form not implemented!"); %TODO: Implement
+		end
+		
+		function genFoster2(obj, p)
+			warning("Foster II-form not implemented!"); %TODO: Implement
+		end
 		
 	end
 	
