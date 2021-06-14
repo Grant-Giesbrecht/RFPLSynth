@@ -76,6 +76,11 @@ classdef NetSynth < handle
 			obj.c_num = tn;
 			obj.c_den = td;
 			
+			% Check for remainder == 0		TODO: Also check for tn == 0?
+			if td == 0
+				obj.c_finished = true;
+			end
+			
 			% Check for last element
 			last_elem = obj.getlastelement(tn, td);
 			if ~isempty(last_elem)
@@ -125,6 +130,11 @@ classdef NetSynth < handle
 			% Update numerator & denominator
 			obj.c_num = tn;
 			obj.c_den = td;
+			
+			% Check for remainder == 0		TODO: Also check for tn == 0?
+			if td == 0
+				obj.c_finished = true;
+			end
 			
 			% Check for last element
 			last_elem = obj.getlastelement(tn, td);
