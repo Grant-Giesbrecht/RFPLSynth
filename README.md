@@ -55,5 +55,7 @@ as JB or J+B.
 ## Contact
 
 Author: Grant Giesbrecht
+
 Institution: University of Colorado Boulder, Electrical and Computer Engineering
+
 email: grant.giesbrecht@colorado.edu
