@@ -192,6 +192,20 @@ classdef Polynomial < handle
 		
 		end
 		
+		function normalize(obj, x)
+			
+			% Get order 0 value
+			nv = obj.get(0);
+			
+			% Normalize all coefficients
+			for ord = 0:obj.order()
+				
+				obj.set(ord, obj.get(ord)/nv);
+				
+			end
+			
+		end
+		
 		
 		
 	end
