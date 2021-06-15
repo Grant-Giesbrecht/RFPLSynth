@@ -9,7 +9,7 @@ classdef Stage < handle
 %	freqs - Frequencies (not scaled)
 %	s_vec - Scaled frequencies
 %	recompute - If true, indicates that the stage's polynomials have not
-%	been optimized and should not be used in recursive network-wide
+%	been optimized and should not be used in recursive MultiStage-wide
 %	calcualtions.
 %	e - S-parameters of the equalizer
 %	S - S-parameters of the active device (populated from SPQ)
@@ -24,20 +24,20 @@ classdef Stage < handle
 %	gain - Vector of stage gain at each frequency
 %	gain_t - Vector of gain targets for each freqency
 %	gain_m - Vector of maxium gains for each frequency
-	
-	properties 
-		
+
+	properties
+
 		%======================= Configuration Settings ===================
-		
+
 		weights
-		
+
 		eval_func
 		opt_options
 		lower_bounds
 		upper_bounds
-		
+
 		h_init_guess
-				
+
 		% Frequencies
 		% NOTE: s_vec is in the laplace domain (ie. sigma + j*omega) and
 		% thus the frequency must be encoded as the imaginary component of
@@ -47,127 +47,127 @@ classdef Stage < handle
 		% of 's_raw' is to provide a non-scaled laplace domain frequency
 		% input to exact the frequency component (imaginary) only, save as
 		% 'freq'. These values can then be used, for example, to query
-		% values from S2P files. 
+		% values from S2P files.
 		freqs
 		s_vec
-		
+
 		forcedCoefs
 		targets
 		evaluation_parameters
-		
+
 		vswr_in_opt
 		vswr_out_opt
-		
+
 		%============================ Status Data =========================
-		
-		% Is used by the Network class to determine when these values are
+
+		% Is used by the MultiStage class to determine when these values are
 		% up-to-date and should be used in recursive/full-system
 		% calcuations, or if this stage needs to be re-optimized and have
 		% be recomputed.
-		recompute 
-		
+		recompute
+
 		%============================ Output Data =========================
-		
+
 		% Equalizer S-Parameters
 		e
-		
+
 		% Transistor S-Parameters
 		S
 		SPQ
-		
+
 		% Multi-stage S-Parameters
 		eh
 		SG
 		SL
-		
-		
-		
+
+
+
 		% Polynomials
 		f
 		h
 		g
-		
+
 		% Metrics
 		gain
 		gain_t % Target gain
 		gain_m % Maximum gain
-		
+
 		optim_out
-		
+
 	end
-	
+
 	methods
-		
+
 		function obj = Stage() %=================== Initializer ===========
-			
+
 			obj.weights = [];
 			obj.eval_func = @(h) error("Need to initialize function 'eval_func'");
-			
+
 			obj.recompute = true;
 			obj.SPQ = NaN;
-			
+
 			obj.e = [];
-			
+
 			obj.S = [];
-			
+
 			obj.eh = [];
-			
+
 			obj.SG = [];
 			obj.SL = [];
-			
+
 			obj.freqs = [];
-			
+
 			obj.f = Polynomial(0);
 			obj.g = Polynomial(0);
 			obj.h = Polynomial(0);
-			
+
 			obj.gain = [];
 			obj.gain_t = [];
 			obj.gain_m = [];
-			
+
 			obj.forcedCoefs = containers.Map;
 			obj.targets = containers.Map;
 			obj.evaluation_parameters = containers.Map;
-			
+
 			obj.optim_out = [];
-			
+
 			obj.opt_options = optimoptions('lsqcurvefit','Algorithm','levenberg-marquardt');
 			obj.lower_bounds = [];
 			obj.upper_bounds = [];
-		
+
 		end %========================= End Initializer ====================
-		
+
 		function setFreqs(obj, s_vec, s_raw) %========= setFreqs ====
 			% Update the frequency variables and resize the output arrays
 			% correctly. s_vec uses scaled laplace domain freqs (ie. 1 Hz
 			% written as i*1/scaling_factor s.t. scaling_factor is any real
 			% number) and s_raw are non-scaled laplace domain frequencies.
-		
+
 			% WARNING: It is critical that all stages use the same frequencies,
-			% and these frequencies must be represented in the Network object
-			% too. If using a Network class, be sure to call setFreqs() from
-			% the Network class, which will call this function for each stage,
-			% to ensure that all stages and the Network have consistent
+			% and these frequencies must be represented in the MultiStage object
+			% too. If using a MultiStage class, be sure to call setFreqs() from
+			% the MultiStage class, which will call this function for each stage,
+			% to ensure that all stages and the MultiStage have consistent
 			% frequency data.
-		
+
 			% Update frequency variables
 			obj.s_vec = s_vec;
 			obj.freqs = imag(s_raw);
-			
+
 			% Modify size of data vectors
 			m = length(obj.s_vec);
 			obj.e = zeros(2,2,m);
-			
+
 			obj.S = zeros(2,2,m);
 			obj.SL = zeros(1,1,m);
 			obj.SG = zeros(1,1,m);
-			
+
 			obj.eh = zeros(2,2,m);
-			
+
 			obj.gain_t = zeros(1,m);
 			obj.gain = zeros(1,m);
 			obj.gain_m = zeros(1,m);
-			
+
 			if strcmp(class(obj.SPQ), 'sparameters') % Initialize S-Parameters from SPQ sparameters object
 				idx = 1;
 				for fr = obj.freqs
@@ -187,63 +187,63 @@ classdef Stage < handle
 					idx = idx + 1;
 				end
 			end
-			
+
 		end %============================== End setFreqs() =============
-		
+
 		function forceCoef(obj, order, value)
-			
+
 			if ~isnumeric(value)
 				if obj.showErrors
 					warning("Failed to add non-numeric value");
 				end
 				return;
 			end
-			
+
 			obj.forcedCoefs(string(order)) = value;
-			
+
 		end
-		
+
 		function str = polystr(obj)
 			% Returns the polynomials as a string
-			
+
 			str = "";
-			
+
 			if ~obj.recompute
 				str = strcat(str, "f(s) = ", obj.f.str('s'));
 				str = strcat(str, string(newline), "g(s) = ", obj.g.str('s'));
 				str = strcat(str, string(newline), "h(s) = ", obj.h.str('s'));
 			end
-			
+
 		end
-		
+
 		%========================= compute_fsimple() ======================
-		function compute_fsimple(obj, h_vec) 
+		function compute_fsimple(obj, h_vec)
 			% Computes the polynomial g(s) from h(s) assuming f(s) = 1.
 			% h_vec contains the coefficients for h(s) in matlab polynomial
 			% vector format.
 
 			% Add forced coefficients
 			for ky = obj.forcedCoefs.keys()
-				
+
 				% Get key (as char)
 				key = ky{1};
-				
+
 				% Get order
-				ord = str2num(key);	
+				ord = str2num(key);
 				idx = length(h_vec)+1 - ord;
 				idx_s = idx;
 				if idx_s > length(h_vec)
 					idx_s = length(h_vec);
 				end
-				
+
 				val = obj.forcedCoefs(key); % Get value
-				
+
 				% Update h_vec
 				h_vec = [h_vec(1:idx_s) , val, h_vec(idx:end)];
-				
+
 			end
-			
-			
+
+
 			% Create h(s) Polynomial object from h vector
 			obj.h = Polynomial(h_vec);
 
@@ -268,7 +268,7 @@ classdef Stage < handle
 			obj.f.set(0, 1);
 
 			obj.recompute = false;
-			
+
 			% Compute e_xy
 			[obj.e(1,1,:), obj.e(2,1,:), obj.e(2,2,:)] = poly2S(obj.f, obj.g, obj.h, obj.s_vec);
 			obj.e(1,2,:) = obj.e(2,1,:);
@@ -276,43 +276,43 @@ classdef Stage < handle
 		end %===================== End compute_fsimple() ==================
 
 		function [zp, znum, zden] = zpoly(obj, varargin) %========== zpoly ========================
-			
+
 			p = inputParser;
 			p.addParameter('Abbrev', true, @islogical);
 			p.addParameter('Digits', 5, @isinteger);
 			p.addParameter('Norm', true, @isinteger);
 			p.parse(varargin{:});
-			
+
 			% Generate symbolic polynomails from h and g
 			syms s;
 			hsp = poly2sym(obj.h.getVec(), s);
 			gsp = poly2sym(obj.g.getVec(), s);
-			
+
 			% Convert potentially huge fractions into decimals if specified
 			% in optional inputs
 			if p.Results.Abbrev
 				hsp = vpa(hsp, p.Results.Digits);
 				gsp = vpa(gsp, p.Results.Digits);
 			end
-			
+
 			% Create e_11 sym. polynomial
 			e11_poly = hsp/gsp;
-			
+
 			% Calculate z sym. poly.
 			zp = (1+e11_poly)/(1-e11_poly);
-			
+
 			% Pull numerator, denominator out of zp
 			[znum, zden] = numden(zp);
 			znum = Polynomial(double(coeffs(znum, 'All')));
 			zden = Polynomial(double(coeffs(zden, 'All')));
-			
+
 			% Normalize results if specified
 			if p.Results.Norm
 				znum.normalize();
 				zden.normalize();
 			end
 		end %======================= END zpoly() ==========================
-		
+
 	end
-	
+
 end

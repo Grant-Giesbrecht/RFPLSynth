@@ -7,8 +7,8 @@ s_raw = sqrt(-1).*[18, 19, 20, 21].*1e9;
 f_scale = 21e9;
 s_vec = s_raw./f_scale;
 
-% Create network object
-net = Network(4);
+% Create MultiStage object
+net = MultiStage(4);
 net.setSPQ(SParam_Q); % Set all transistor S-parameters
 net.setFreqs(s_vec, s_raw);
 net.reset();
@@ -73,64 +73,13 @@ net.optimSummary();
 license('inuse')
 
 function error_sum = error_fn1(net, k)
-	
+
 	stg = net.getStg(k);
 
 	gain_term = stg.weights(1) * (stg.gain./stg.gain_t - 1).^2;
 	vswr_in_term = stg.weights(2) * (net.vswr_in./net.vswr_in_t - 1).^2;
 	vswr_out_term = stg.weights(3) * (net.vswr_out./net.vswr_out_t - 1).^2;
-	
+
 	error_sum = sum( gain_term + vswr_in_term + vswr_out_term );
 
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -4,13 +4,13 @@ R = [28, 30, 25, 20]./27;
 X = [19, 8, 5, 8]./27;
 Zin = R + sqrt(-1).*X;
 
-% Here we convert them to the format expected by the Network class
+% Here we convert them to the format expected by the MultiStage class
 s_raw = sqrt(-1).*freqs;
 f_scale = 1;
 s_vec = s_raw./f_scale;
 
-% Create network object
-net = Network(0);
+% Create MultiStage object
+net = MultiStage(0);
 % net.setSPQ(SParam_Q); % Set all transistor S-parameters
 net.setFreqs(s_vec, s_raw);
 net.reset();
@@ -68,71 +68,20 @@ grid on;
 set(gca,'FontSize',12)
 
 function error_sum = error_fn_zin(net, k)
-	
+
 	stg = net.getStg(k);
-	
+
 	Zin = (1 + flatten(stg.e(1,1,:))) ./ (1 - flatten(stg.e(1,1,:)));
 	stg.evaluation_parameters('ZIN') = Zin;
 
 	net.setStg(k, stg);
-	
+
 	re_term = stg.weights(1) * (real(Zin) ./ real(stg.targets('ZIN')) - 1).^2;
 	im_term = stg.weights(2) * (imag(Zin) ./ imag(stg.targets('ZIN')) - 1).^2;
-	
+
 % 	zin_term = stg.weights(1) * (Zin ./ stg.targets('ZIN') - 1).^2;
 
 % 	error_sum = sum(zin_term);
 	error_sum = sum(re_term + im_term);
 
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

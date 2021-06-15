@@ -8,8 +8,8 @@ s_vec = s_raw./f_scale;
 
 vswr_in_t = 2;
 
-% Create network object
-net = Network(4);
+% Create MultiStage object
+net = MultiStage(4);
 net.setSPQ(SParam_Q); % Set all transistor S-parameters
 net.setFreqs(s_vec, s_raw);
 net.reset();
@@ -62,50 +62,3 @@ ylim([0,23]);
 
 
 xlim([18.9, 21]);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

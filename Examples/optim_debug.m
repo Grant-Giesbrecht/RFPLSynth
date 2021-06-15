@@ -1,4 +1,4 @@
-force_h0 = true;
+MultiStageforce_h0 = true;
 give_good_guess = false;
 
 SParam_Q = sparameters("JB_Ch2_Ex_Q.s2p"); % Read transistor S-parameter data
@@ -7,8 +7,8 @@ s_raw = sqrt(-1).*[18, 19, 20, 21].*1e9;
 f_scale = 21e9;
 s_vec = s_raw./f_scale;
 
-% Create network object
-net = Network(4);
+% Create MultiStage object
+net = MultiStage(4);
 net.setSPQ(SParam_Q); % Set all transistor S-parameters
 net.setFreqs(s_vec, s_raw);
 net.reset();
@@ -76,8 +76,8 @@ net.optimSummary();
 
 %==========================================================================
 
-% Create network object
-net_JB = Network(4);
+% Create MultiStage object
+net_JB = MultiStage(4);
 net_JB.setSPQ(SParam_Q); % Set all transistor S-parameters
 net_JB.setFreqs(s_vec, s_raw);
 net_JB.reset();
@@ -150,78 +150,27 @@ end
 % eJ3
 
 function error_sum = error_fn1(net, k)
-	
+
 	stg = net.getStg(k);
 
 	gain_term = stg.weights(1) * (stg.gain./stg.gain_t - 1).^2;
 	vswr_in_term = stg.weights(2) * (net.vswr_in./net.vswr_in_t - 1).^2;
 	vswr_out_term = stg.weights(3) * (net.vswr_out./net.vswr_out_t - 1).^2;
-	
+
 	error_sum = sum( gain_term + vswr_in_term + vswr_out_term );
 
 end
 
 function [err1, err2, err3] = error_fn_breakdown(net, k)
-	
+
 	stg = net.getStg(k);
 
 	gain_term = stg.weights(1) * (stg.gain./stg.gain_t - 1).^2;
 	vswr_in_term = stg.weights(2) * (net.vswr_in./net.vswr_in_t - 1).^2;
 	vswr_out_term = stg.weights(3) * (net.vswr_out./net.vswr_out_t - 1).^2;
-	
+
 	err1 = sum(gain_term);
 	err2 = sum(vswr_in_term);
 	err3 = sum(vswr_out_term);
 
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
