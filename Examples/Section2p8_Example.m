@@ -97,13 +97,6 @@ for k=1:5
 end
 
 
-% % Display result
-% displ("Scaled Circuit Output:");
-% for c=synth.circ
-% 	displ("  ", c.str());
-% end
-
-
 
 
 

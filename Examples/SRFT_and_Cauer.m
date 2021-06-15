@@ -98,7 +98,7 @@ end
 
 
 % Scale circuit
-for elmt=synth.circ
+for elmt=synth.circ.components
 	
 	% Scale by frequency
 	elmt.val = elmt.val/synth_f_scale;
