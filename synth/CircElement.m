@@ -20,6 +20,8 @@ classdef CircElement < handle
 			obj.val_unit = unit; % ex. the 'ohms' in 50 ohms
 			obj.part_no = ""; % Part number/identifier. Can be for physical part number in manufacturing, or to distiguish type of element
 			obj.props = containers.Map; % Other properties (ex. for transmission lines)
+			
+			obj.format();
 		end
 		
 		function s = str(obj)
@@ -36,9 +38,52 @@ classdef CircElement < handle
 				nodestr = strcat(nodestr, n);
 			end
 			
-			s = strcat(num2str(obj.val), " ", obj.val_unit, "   (", nodestr, ")");
+			scaled_str = scaleNumUnit(obj.val, obj.val_unit);
+			
+			s = strcat(scaled_str, "   (", nodestr, ")");
 			
 		end
+		
+		function format(obj) %============== format() =====================
+			
+			ustr = string(obj.val_unit);
+			cu = char(obj.val_unit);
+			
+			[mult, baseUnit] = parseUnit(ustr);
+		
+			baseUnit = upper(baseUnit);
+			
+			switch baseUnit
+				case "F"	% Capacitors
+					obj.ref_type = "C";
+				case "H"	% Inductors
+					obj.ref_type = "L";
+				case "OHM"	% Resistors
+					obj.ref_type = "R";
+				case "R"	% Resistors
+					obj.ref_type = "R";
+				case "M"	% Transmission Lines
+					obj.ref_type = "TL";
+				otherwise	% Otherwise assume unit is type (ex. transistor 
+					obj.ref_type = obj.unit;
+			end
+			
+		end %==================== END format() ============================
+		
+		function zf = Z(obj, freq) %===================== Z() =============
+			
+			switch obj.ref_type
+				case "C"
+					zf = Zc(obj.val, freq);
+				case "L"
+					zf = Zl(obj.val, freq);
+				case "R"
+					zf = obj.val;
+				otherwise
+					zf = NaN;
+			end
+					
+		end %========================== END Z =============================
 	end
 	
 end
