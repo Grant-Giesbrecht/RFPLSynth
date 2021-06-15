@@ -275,12 +275,25 @@ classdef Stage < handle
 
 		end %===================== End compute_fsimple() ==================
 
-		function [zp, znum, zden] = zpoly(obj) %========== zpoly ========================
+		function [zp, znum, zden] = zpoly(obj, varargin) %========== zpoly ========================
+			
+			p = inputParser;
+			p.addParameter('Abbrev', true, @islogical);
+			p.addParameter('Digits', 5, @isinteger);
+			p.addParameter('Norm', true, @isinteger);
+			p.parse(varargin{:});
 			
 			% Generate symbolic polynomails from h and g
 			syms s;
 			hsp = poly2sym(obj.h.getVec(), s);
 			gsp = poly2sym(obj.g.getVec(), s);
+			
+			% Convert potentially huge fractions into decimals if specified
+			% in optional inputs
+			if p.Results.Abbrev
+				hsp = vpa(hsp, p.Results.Digits);
+				gsp = vpa(gsp, p.Results.Digits);
+			end
 			
 			% Create e_11 sym. polynomial
 			e11_poly = hsp/gsp;
@@ -293,6 +306,11 @@ classdef Stage < handle
 			znum = Polynomial(double(coeffs(znum, 'All')));
 			zden = Polynomial(double(coeffs(zden, 'All')));
 			
+			% Normalize results if specified
+			if p.Results.Norm
+				znum.normalize();
+				zden.normalize();
+			end
 		end %======================= END zpoly() ==========================
 		
 	end
