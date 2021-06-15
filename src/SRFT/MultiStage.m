@@ -1,4 +1,4 @@
-MultiStageclassdef MultiStage < handle
+classdef MultiStage < handle
 % MultiStage Model a MultiStage for Simplified Real Frequency Technique (SRFT)
 %	Models a MultiStage for using SRFT.
 %
@@ -382,10 +382,10 @@ MultiStageclassdef MultiStage < handle
 
 		function erVal = manualOpt(obj, k, h_vec)
 
-			optimizer_function = @(h, s_data) default_opt(h, obj, k);
+			optimizer_function = @(h, s_data) MultiStage.default_opt(h, obj, k);
 
 			% Run Optimizer for Stage k
-			erVal = default_opt(h_vec, obj, k);
+			erVal = MultiStage.default_opt(h_vec, obj, k);
 
 			% Perform Stage-k computations
 			obj.getStg(k).compute_fsimple(h_vec);
@@ -405,7 +405,7 @@ MultiStageclassdef MultiStage < handle
 				showResults = 'warnings';
 			end
 
-			optimizer_function = @(h, s_data) default_opt(h, obj, k);
+			optimizer_function = @(h, s_data) MultiStage.default_opt(h, obj, k);
 
 			% Run Optimizer for Stage k
 			tic; % Start timer
@@ -645,6 +645,26 @@ MultiStageclassdef MultiStage < handle
 
 
 		end %=============================== End compute_rcsv() ===========
+
+	end
+
+	methods (Static)
+		function error_sum = default_opt(h_vec, net, k)
+		% DEFAULT_OPT Default optimization function for MultiStage class
+		%
+		%	error_sum = DEFAULT_OPT(H_VEC, NET, K) Evaluates the coefficients H_VEC
+		%	in the MultiStage NET for stage K and returns the error value, as
+		%	calculated by the stage's eval_func parameter.
+
+			stg = net.getStg(k);
+			stg.compute_fsimple(h_vec);
+			net.setStg(k, stg);
+
+			net.compute_rcsv();
+
+			error_sum = net.getStg(k).eval_func(net, k);
+
+		end
 	end
 
 end
