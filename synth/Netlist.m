@@ -12,10 +12,15 @@ classdef Netlist < handle
 		end
 		
 		function add(obj, elmnt)
+			
 			obj.components = addTo(obj.components, elmnt);
 		end
 		
 		function purge(obj, varargin)
+			
+			%TODO: Fix node names for removed elements (ie. n1-n2-n3,
+			%remove first element and n1 and n2 are now broken, one needs
+			%to be renamed).
 			
 			p = inputParser;
 			p.addParameter('Zopen', 100e6, @isnumeric);
@@ -31,14 +36,13 @@ classdef Netlist < handle
 			% Scan over all elements
 			pop_idx = [];
 			idx = 0;
-			for elmt=obj.circ
+			for elmt=obj.components
 				idx = idx + 1;
 				
-				% Scale by Z0
+				% Get impedances at all test points
+					Zs = abs(elmt.Z(freqs));
+				
 				if strcmp(elmt.nodes(2), "GND") %If is an admittance...
-					
-					% Get impedances at all test points
-					Zs = elmt.Z(freqs);
 					
 					% If element is open at all points, delete
 					if all( Zs > Z_open)
@@ -46,20 +50,30 @@ classdef Netlist < handle
 					end
 					
 				else % Else if an impedance
-					elmt.val = elmt.val*synth_Z0_scale;
+					
+					% If element is shorted at all points, delete
+					if all( Zs < Z_short)
+						pop_idx = addTo(pop_idx, idx);
+					end
+					
 				end
 				
-				
 			end
+			
+			% Delete marked elements
+			obj.components(pop_idx) = [];
 			
 		end
 		
 		function s = str(obj)
 			
+			s = "";
+			
 			% Display result
 			displ("Scaled Circuit Output:");
-			for c=synth.circ
-				displ("  ", c.str());
+			for c=obj.components
+				s = strcat(s, "  ", c.str());
+				s = s + newline;
 			end
 			
 		end
