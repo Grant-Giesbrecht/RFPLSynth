@@ -1,8 +1,9 @@
 # RFPLSynth
 Automatic Microwave Network Synthesis using:
-	* Simplified Real Frequency Technique
-	* Foster Network Synthesis
-	* Cauer Network Syntehsis
+
+* Simplified Real Frequency Technique
+* Foster Network Synthesis
+* Cauer Network Syntehsis
 
 ## Installation Process
 Once the dependencies (listed below) are fullfilled, installing the package just
