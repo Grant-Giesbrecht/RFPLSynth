@@ -1,3 +1,15 @@
+%=========================================================================%
+% This example demonstrates how to generate polynomials for a simple
+% matching network. The network's performance is specified as a series of
+% impedances across a frequency range.
+%
+%
+%
+% Author: G. Giesbrecht
+% Contact: grant.giesbrecht@colorado.edu
+%
+%=========================================================================%
+
 % This is the example data we are matching
 freqs = [1, 1.6, 2.3, 3];
 R = [28, 30, 25, 20]./27;
