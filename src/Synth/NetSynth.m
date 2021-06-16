@@ -262,9 +262,9 @@ classdef NetSynth < handle
 			end
 			
 			
-		end %==================== END generate() =========================
+		end %==================== END generate() ==========================
 		
-		function genCauer1(obj, p)
+		function genCauer1(obj, p) %========== genCauer1() ================
 			
 			maxEval = p.Results.MaxEval;
 			synth_f_scale = p.Results.f_scale;
@@ -285,6 +285,45 @@ classdef NetSynth < handle
 			end
 			
 			% Scale circuit
+			obj.scaleComponents(synth_f_scale, synth_Z0_scale)
+			
+		end %============================ END genCauer1() =================
+		
+		function genCauer2(obj, p) %============= genCauer2() =============
+			
+			maxEval = p.Results.MaxEval;
+			synth_f_scale = p.Results.f_scale;
+			synth_Z0_scale = p.Results.Z0_scale;
+			
+			% Run cauer synthesis until entire circuit is extracted
+			count = 0;
+			while ~obj.c_finished % Check if completely extracted
+				
+				% Rerun Cauer-1 algorithm
+				obj.cauer2();
+				
+				% Increment counter
+				count = count +1;
+				if  count > maxEval
+					error("Maximum number of Cauer executions exceeded");
+				end
+			end
+			
+			% Scale circuit
+			obj.scaleComponents(synth_f_scale, synth_Z0_scale)
+			
+		end %=================== END genCauer2() ==========================
+		
+		function genFoster1(obj, p) %================== genFoster1() ======
+			warning("Foster I-form not implemented!"); %TODO: Implement
+		end %======================= genFoster2() =========================
+		
+		function genFoster2(obj, p) %================= genFoster2() =======
+			warning("Foster II-form not implemented!"); %TODO: Implement
+		end %========================== END genFoster2() ==================
+		
+		function scaleComponents(obj, synth_f_scale, synth_Z0_scale)
+			
 			for elmt=obj.circ.components
 
 				% Scale by frequency
@@ -298,19 +337,6 @@ classdef NetSynth < handle
 				end
 
 			end
-			
-		end
-		
-		function genCauer2(obj, p)
-			warning("Cauer II-form not implemented!"); %TODO: Implement
-		end
-		
-		function genFoster1(obj, p)
-			warning("Foster I-form not implemented!"); %TODO: Implement
-		end
-		
-		function genFoster2(obj, p)
-			warning("Foster II-form not implemented!"); %TODO: Implement
 		end
 		
 	end
