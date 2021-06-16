@@ -1,69 +1,75 @@
-function [L,C] = fost2comp(sp)
-% FOST2COMP Calculates L and C values for a Foster I-form stage
+function [L, C, Tn, Td] = fosterXel(num, den)
 %
-% Computes the L and C values given a symbolic math polynomial SP and
-% returns the parallel L and C values for one stage of a Foster I-form
-% implementation of the polynomial.
 %
-%	[L,C] = FOST2COMP(SP) SP is a symbolic math polynomial representing one
-%	stage of a Foster I-form polynomial, achieved via partial fraction
-%	decomposition. Returns the L and C values for this stage.
 %
-	% Get numerator and denominator from symbolic polynomial
-	[n,d] = numden(sp);
-	
-	% Convert to polynomial class
-	num = Polynomial(0);
-	den = Polynomial(0);
-	num.setVec(double(coeffs(n, 'All')));
-	den.setVec(double(coeffs(d, 'All')));
-	
-	% Check that numerator is correct order
-	if num.order() ~= 1
-		L = NaN;
-		C = NaN;
-		disp("Input polynomial is wrong format. Numerator must be order 1.");
-		return;
+%
+%
+
+	% Create symbolic polynomial from numerator and denominator
+	% coefficients
+	syms s;
+	n = poly2sym(Zn, s);
+	d = poly2sym(Zd, s);
+	Z = n/d;
+
+	% Compute partial fraction decomposition
+	pf = partfrac(Z, 'FactorMode', 'Real');
+
+	% Break decomposition up into terms
+	terms_cell = children(pf);
+
+	% Check output type of children. In MATLAB 2020b and later it will be a
+	% cell array. Previously it will be a vector. Here the type is checked,
+	% then converted to a vector for consistency.
+	if iscell(terms_cell)
+		% Convert output to vector
+		terms = [];
+		for i=1:numel(terms_cell)
+			terms = addTo(terms, terms_cell{i});
+		end
+	else
+		terms = terms_cell;
 	end
-	
-	% Check that denominator is correct order
-	if den.order() ~= 2 && den.order() ~= 0
-		L = NaN;
-		C = NaN;
-		disp("Input polynomial is wrong format. Denominator must be order 2.");
-		return;
+
+	% Scan through each term, pick out the term(s) that follow the format
+	% of some number divided by 's'.
+	for t=terms
+
+		% To check order, need to pull out denomenator (as vectors)
+		[nv, dv] = sym2nd(t);
+
+		% Check 't' describes a circuit element with an 's' in the
+		% denominator
+
+		if iselement(nv, dv, 'Format', 'Foster')
+			k_term = t; %TODO: Replace with addTo incase there are mult num/s terms? (there shouldnt be)
+		else % Does not look like element, add to denominator
+			remainder_terms = addTo(remainder_terms, t);
+		end
+
 	end
-	
-	% Get scale factor - 0th order in denominator should equal 1
-	scale_fact = den.get(0);
-	
-	% Get scaled coefficient from numerator's 1st order term
-	L = num.get(1)/scale_fact;
-	
-	% Get scaled coegfficient from denominator's 2nd order term
-	C = den.get(2)/scale_fact/L;
+
+	% Check for missing k_term
+	if isempty(k_term)
+		error("Failed to find K value. Check input polynomial.");
+	end
+
+%============================================ END OF NEW CODEE=================
+
+	% Create empty L and C vectors
+	Ls = [];
+	Cs = [];
+
+	% For each polynomial term...
+	for t = terms
+
+		% Get Foster elements
+		[L, C] = foster2comp(t);
+
+		% Add to list
+		Ls = addTo(Ls, L);
+		Cs = addTo(Cs, C);
+
+	end
 
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

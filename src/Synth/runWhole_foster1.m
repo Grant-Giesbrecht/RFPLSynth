@@ -1,4 +1,4 @@
-function [Ls, Cs] = foster1(Zn, Zd)
+function [Ls, Cs] = runWhole_foster1(Zn, Zd)
 
 	% Create symbolic polynomial from numerator and denominator
 	% coefficients
@@ -9,7 +9,7 @@ function [Ls, Cs] = foster1(Zn, Zd)
 
 	% Compute partial fraction decomposition
 	pf = partfrac(Z, 'FactorMode', 'Real');
-	
+
 	% Break decomposition up into terms
 	terms_cell = children(pf);
 
@@ -29,45 +29,17 @@ function [Ls, Cs] = foster1(Zn, Zd)
 	% Create empty L and C vectors
 	Ls = [];
 	Cs = [];
-	
+
 	% For each polynomial term...
 	for t = terms
 
 		% Get Foster elements
-		[L, C] = fosterXel(t);
+		[L, C] = foster2comp(t);
 
 		% Add to list
 		Ls = addTo(Ls, L);
 		Cs = addTo(Cs, C);
 
-	end	
+	end
 
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
