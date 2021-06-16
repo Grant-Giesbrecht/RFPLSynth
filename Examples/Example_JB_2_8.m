@@ -1,7 +1,22 @@
+%=========================================================================%
+% This example demonstrates how to use this package to design a multi-stage
+% amplifier. This example program implements the same problem shown in 
+% Section 2,8 of "Microwave Amplifier and Active Circuit Design Using the
+% Real Frequency Technique" by P. Jarry & J. Beneat. This program uses both
+% SRFT and Cauer network synthesis.
 %
+% PROBLEM DESCRIPTION:
+% Each amplifier stage is composed of a single transistor and one matching
+% network at it's gate. Each transistor is assumed to terminated in some 
+% impedance, 'Z0'. One final matching network is added to match the last
+% amplifier stage to a load ZL. The impedance of the source is defined as
+% ZG.
 %
+% 
+% Author: G. Giesbrecht
+% Contact: grant.giesbrecht@colorado.edu
 %
-%
+%=========================================================================%
 
 %=========================================================================%
 %							SRFT Algorithm								  %
@@ -72,7 +87,7 @@ net.optimSummary();
 
 
 %=========================================================================%
-%					Cauer Synthesis for Stage 1							  %
+%					Cauer Network Synthesis 							  %
 %=========================================================================%
 
 
