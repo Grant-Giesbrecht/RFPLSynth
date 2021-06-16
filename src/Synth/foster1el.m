@@ -84,22 +84,4 @@ function [L, C, Tn, Td] = foster1el(num, den)
 	% Get scaled coegfficient from denominator's 2nd order term
 	C = el_dp.get(2)/scale_fact/L;
 
-%============================================ END OF NEW CODEE=================
-
-	% Create empty L and C vectors
-	Ls = [];
-	Cs = [];
-
-	% For each polynomial term...
-	for t = terms
-
-		% Get Foster elements
-		[L, C] = foster2comp(t);
-
-		% Add to list
-		Ls = addTo(Ls, L);
-		Cs = addTo(Cs, C);
-
-	end
-
 end

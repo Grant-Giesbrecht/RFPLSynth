@@ -9,4 +9,5 @@ function [L, C, Tn, Td] = foster2el(num, den)
 	% Is exactly the same as foster1el, just L and C are switched
 	[C, L, Tn, Td] = foster1el(num, den);
 
+
 end
