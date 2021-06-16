@@ -270,12 +270,12 @@ classdef NetSynth < handle
 
 		function [ind, cap] = getlastfoster(obj, tn, td, form) %== getlastfoster =
 
-			if form ~= 1 and form ~= 2
+			if form ~= 1 && form ~= 2
 				error("Argument 'form' must be either 1 or 2.");
 			end
 
 			% Get K-value and position of 's' variable
-			if iselement(td, tn, 'Format', 'Foster') % Check if in numerator
+			if iselement(tn, td, 'Format', 'Foster') % Check if in numerator
 
 				scale_fact = td(end);
 				nv = tn(end-1)/scale_fact;
@@ -488,7 +488,28 @@ classdef NetSynth < handle
 		end %======================= genFoster2() =========================
 
 		function genFoster2(obj, p) %================= genFoster2() =======
-			warning("Foster II-form not implemented!"); %TODO: Implement
+			
+			maxEval = p.Results.MaxEval;
+			synth_f_scale = p.Results.f_scale;
+			synth_Z0_scale = p.Results.Z0_scale;
+
+			% Run cauer synthesis until entire circuit is extracted
+			count = 0;
+			while ~obj.c_finished % Check if completely extracted
+
+				% Rerun Cauer-1 algorithm
+				obj.foster2();
+
+				% Increment counter
+				count = count +1;
+				if  count > maxEval
+					error("Maximum number of Cauer executions exceeded");
+				end
+			end
+
+			% Scale circuit
+			obj.scaleComponents(synth_f_scale, synth_Z0_scale)
+			
 		end %========================== END genFoster2() ==================
 
 		function scaleComponents(obj, synth_f_scale, synth_Z0_scale)
