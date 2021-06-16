@@ -4,7 +4,11 @@
 % provided and not derived from a set of abstract conditions using SRFT.
 % The main purpose of this example is to show how multiple forms of network
 % synthesis can be used together on one network. In this example, Cauer
-% forms 1 and 2 are used together.
+% forms 1 and 2 are used together. This example comes from Harry Y-F. Lam's
+% 1979 book "Analog and Digital Filters: Design and Realization" as
+% example 5-4.
+%
+%
 %
 % PROBLEM DESCRIPTION:
 % Generate a circuit for the polynomial below using Cauer's 2nd form,
