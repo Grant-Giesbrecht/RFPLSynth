@@ -45,7 +45,7 @@ function [k, Tn, Td] = cauer2el(num, den)
 		% Check 't' describes a circuit element with an 's' in the
 		% denominator
 
-		if iselement(nv, dv, 'Position', 'den', 'Format', 'Cauer')
+		if iselement(nv, dv, 'Position', 'den', 'Format', 'Cauer') && isempty(k_term)
 			k_term = t; %TODO: Replace with addTo incase there are mult num/s terms? (there shouldnt be)
 		else % Does not look like element, add to denominator
 			remainder_terms = addTo(remainder_terms, t);
