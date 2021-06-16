@@ -9,8 +9,8 @@ function [L, C, Tn, Td] = foster1el(num, den)
 	% Create symbolic polynomial from numerator and denominator
 	% coefficients
 	syms s;
-	n = poly2sym(Zn, s);
-	d = poly2sym(Zd, s);
+	n = poly2sym(num, s);
+	d = poly2sym(den, s);
 	Z = n/d;
 
 	% Compute partial fraction decomposition
@@ -45,7 +45,7 @@ function [L, C, Tn, Td] = foster1el(num, den)
 		% Check 't' describes a circuit element with an 's' in the
 		% denominator
 
-		if iselement(nv, dv, 'Format', 'Foster')
+		if iselement(nv, dv, 'Format', 'Foster') && isempty(k_term)
 			k_term = t; %TODO: Replace with addTo incase there are mult num/s terms? (there shouldnt be)
 		else % Does not look like element, add to denominator
 			remainder_terms = addTo(remainder_terms, t);
@@ -72,7 +72,7 @@ function [L, C, Tn, Td] = foster1el(num, den)
 	[kn,kd] = numden(k_term);
 	el_np = Polynomial(0);
 	el_dp = Polynomial(0);
-	el__np.setVec(double(coeffs(kn, 'All')));
+	el_np.setVec(double(coeffs(kn, 'All')));
 	el_dp.setVec(double(coeffs(kd, 'All')));
 
 	% Get scale factor - 0th order in denominator should equal 1
