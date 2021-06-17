@@ -20,6 +20,7 @@ synth.reset();
 
 % Generate Foster-II Network
 synth.generate('Foster2');
+synth.circ.purge();
 
 % Save circuit
 foster2_cr = synth.circ;
