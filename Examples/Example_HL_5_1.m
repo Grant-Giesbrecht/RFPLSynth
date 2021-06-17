@@ -8,12 +8,15 @@ Zin = (s^2 + 1)*(s^2 + 9) / s/(s^2 + 4)/(s^2 + 16);
 % Create Network Synthesizer Object
 synth = NetSynth(Zn, Zd);
 
+% Evaluate Realizability
+displ("Realizable formats:");
+displ(synth.realizable());
+
 % Generate Foster-I Network
 synth.generate('Foster1');
 
 % Save Circuit
 foster1_cr = synth.circ;
-
 
 %Reset synthesizer
 synth.reset();
