@@ -16,7 +16,7 @@ classdef Netlist < handle
 			tf = true;
 			
 			% Verify that correct type is being added
-			if ~isa(elmt, 'CircElement')
+			if ~isa(elmnt, 'CircElement')
 				warning("Failed to add element. Incorrect type (expected CircElement)");
 				tf = false;
 				return;
