@@ -71,8 +71,17 @@ classdef NetSynth < handle
 
 			%TODO: What is num, den are currently and admittance function? Just flip?
 
+			% Get Z numerator and denominator
+			if obj.is_admit
+				Z_num = obj.den;
+				Z_den = obj.num;
+			else
+				Z_num = obj.num;
+				Z_den = obj.den;
+			end
+
 			% Perform Foster I-form synthesis
-			[L, C, tn, td] = foster1el(obj.num, obj.den);
+			[L, C, tn, td] = foster1el(Z_num, Z_den);
 
 			ind = CircElement(L, "H");
 			cap = CircElement(C, "F");
@@ -92,8 +101,14 @@ classdef NetSynth < handle
 			obj.circ.add(cap);
 
 			% Update numerator & denominator
-			obj.num = tn;
-			obj.den = td;
+			if obj.is_admit
+				Z_num = td;
+				Z_den = tn;
+			else
+				obj.num = tn;
+				obj.den = td;
+			end
+
 
 			% TODO: Is this correct for Foster?
 			% Check for remainder == 0		TODO: Also check for tn == 0?
@@ -122,7 +137,14 @@ classdef NetSynth < handle
 
 		function foster2(obj)
 
-			%TODO: What is num, den are currently and admittance function? Just flip?
+			% Get Y numerator and denominator
+			if obj.is_admit
+				Y_num = obj.num;
+				Y_den = obj.den;
+			else
+				Y_num = obj.den;
+				Y_den = obj.num;
+			end
 
 			% Perform Foster II-form synthesis
 			%
@@ -130,7 +152,7 @@ classdef NetSynth < handle
 			% refer to an admittance (Y) function inside this foster2()
 			% function but refer to an impedance (Z) in the remainder of
 			% the NetSynth class. I keep tn and td as referring to Y here.
-			[L, C, tn, td] = foster2el(obj.den, obj.num);
+			[L, C, tn, td] = foster2el(Y_num, Y_den);
 
 			ind = CircElement(L, "H");
 			cap = CircElement(C, "F");
@@ -154,8 +176,13 @@ classdef NetSynth < handle
 			% refer to an admittance (Y) function inside this foster2()
 			% function but refer to an impedance (Z) in the remainder of
 			% the NetSynth class.
-			obj.num = td;
-			obj.den = tn;
+			if obj.is_admit
+				Z_num = tn;
+				Z_den = td;
+			else
+				obj.num = td;
+				obj.den = tn;
+			end
 
 			% TODO: Is this correct for Foster?
 			% Check for remainder == 0		TODO: Also check for tn == 0?
