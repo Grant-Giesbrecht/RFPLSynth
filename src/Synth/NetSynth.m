@@ -7,10 +7,10 @@ classdef NetSynth < handle
 		den_orig
 
 		% Parameters for Cauer 1st and 2nd for Synthesis
-		c_isadm % Is modelling admittance
+		is_admit % Is modelling admittance
 		num % Numerator poly
 		den % Denominator poly
-		c_finished = true; % True when completed
+		finished = true; % True when completed
 
 		circ
 
@@ -49,12 +49,12 @@ classdef NetSynth < handle
 
 			end
 
-			obj.c_isadm = false;
+			obj.is_admit = false;
 			obj.num = num;
 			obj.den = den;
 			obj.num_orig = num;
 			obj.den_orig = den;
-			obj.c_finished = false;
+			obj.finished = false;
 
 			obj.circ = Netlist([]);
 
@@ -98,10 +98,10 @@ classdef NetSynth < handle
 			% TODO: Is this correct for Foster?
 			% Check for remainder == 0		TODO: Also check for tn == 0?
 			if tn == 0
-				obj.c_finished = true;
+				obj.finished = true;
 			end
 
-			%TODO: Check if c_finished already true (could be true if
+			%TODO: Check if finished already true (could be true if
 			%remainder == 0), ie. td = 0
 			%
 			% Check for last element
@@ -110,12 +110,12 @@ classdef NetSynth < handle
 				obj.circ.add(last_ind);
 				obj.circ.add(last_cap);
 
-				obj.c_finished = true;
+				obj.finished = true;
 			end
 			ce = obj.getlastcauer(tn, td);
 			if ~isempty(ce)
 				obj.circ.add(ce);
-				obj.c_finished = true;
+				obj.finished = true;
 			end
 
 		end
@@ -160,10 +160,10 @@ classdef NetSynth < handle
 			% TODO: Is this correct for Foster?
 			% Check for remainder == 0		TODO: Also check for tn == 0?
 			if tn == 0
-				obj.c_finished = true;
+				obj.finished = true;
 			end
 
-			%TODO: Check if c_finished already true (could be true if
+			%TODO: Check if finished already true (could be true if
 			%remainder == 0), ie. td = 0
 			%
 			% Check for last element
@@ -172,12 +172,12 @@ classdef NetSynth < handle
 				obj.circ.add(last_ind);
 				obj.circ.add(last_cap);
 
-				obj.c_finished = true;
+				obj.finished = true;
 			end
 			ce = obj.getlastcauer(tn, td);
 			if ~isempty(ce)
 				obj.circ.add(ce);
-				obj.c_finished = true;
+				obj.finished = true;
 			end
 
 		end
@@ -189,7 +189,7 @@ classdef NetSynth < handle
 			[k, tn, td] = cauer1el(obj.num, obj.den);
 
 			% Create circuit element from output of Cauer-II
-			if obj.c_isadm % Is an admittance
+			if obj.is_admit % Is an admittance
 
 				% Create circuit element
 				ce = CircElement(k, "F"); % C = k
@@ -222,10 +222,10 @@ classdef NetSynth < handle
 
 			% Check for remainder == 0		TODO: Also check for tn == 0?
 			if td == 0
-				obj.c_finished = true;
+				obj.finished = true;
 			end
 
-			%TODO: Check if c_finished already true (could be true if
+			%TODO: Check if finished already true (could be true if
 			%remainder == 0), ie. td = 0
 			%
 			% Check for last element
@@ -233,11 +233,11 @@ classdef NetSynth < handle
 			if ~isempty(last_elem)
 				obj.circ.add(last_elem);
 
-				obj.c_finished = true;
+				obj.finished = true;
 			end
 
 			% Toggle if in admittance mode
-			obj.c_isadm = ~obj.c_isadm;
+			obj.is_admit = ~obj.is_admit;
 
 		end %======================== END cauer1() ========================
 
@@ -247,7 +247,7 @@ classdef NetSynth < handle
 			[k, tn, td] = cauer2el(obj.num, obj.den);
 
 			% Create circuit element from output of Cauer-I
-			if obj.c_isadm % Is an admittance
+			if obj.is_admit % Is an admittance
 
 				% Create circuit element
 				ce = CircElement(1/k, "H"); % L = 1/k
@@ -279,7 +279,7 @@ classdef NetSynth < handle
 
 			% Check for remainder == 0		TODO: Also check for tn == 0?
 			if td == 0
-				obj.c_finished = true;
+				obj.finished = true;
 			end
 
 			% Check for last element
@@ -287,11 +287,11 @@ classdef NetSynth < handle
 			if ~isempty(last_elem)
 				obj.circ.add(last_elem);
 
-				obj.c_finished = true;
+				obj.finished = true;
 			end
 
 			% Toggle if in admittance mode
-			obj.c_isadm = ~obj.c_isadm;
+			obj.is_admit = ~obj.is_admit;
 
 		end %================== END cauer2() ==============================
 
@@ -365,7 +365,7 @@ classdef NetSynth < handle
 			end
 
 			% Create circuit element from output of Cauer-II
-			if obj.c_isadm % Is an admittance
+			if obj.is_admit % Is an admittance
 
 				% Create circuit element
 				if in_num
@@ -447,7 +447,7 @@ classdef NetSynth < handle
 
 			% Run cauer synthesis until entire circuit is extracted
 			count = 0;
-			while ~obj.c_finished % Check if completely extracted
+			while ~obj.finished % Check if completely extracted
 
 				% Rerun Cauer-1 algorithm
 				obj.cauer1();
@@ -472,7 +472,7 @@ classdef NetSynth < handle
 
 			% Run cauer synthesis until entire circuit is extracted
 			count = 0;
-			while ~obj.c_finished % Check if completely extracted
+			while ~obj.finished % Check if completely extracted
 
 				% Rerun Cauer-1 algorithm
 				obj.cauer2();
@@ -497,7 +497,7 @@ classdef NetSynth < handle
 
 			% Run cauer synthesis until entire circuit is extracted
 			count = 0;
-			while ~obj.c_finished % Check if completely extracted
+			while ~obj.finished % Check if completely extracted
 
 				% Rerun Cauer-1 algorithm
 				obj.foster1();
@@ -522,7 +522,7 @@ classdef NetSynth < handle
 
 			% Run cauer synthesis until entire circuit is extracted
 			count = 0;
-			while ~obj.c_finished % Check if completely extracted
+			while ~obj.finished % Check if completely extracted
 
 				% Rerun Cauer-1 algorithm
 				obj.foster2();
@@ -545,9 +545,9 @@ classdef NetSynth < handle
 			obj.den = obj.den_orig;
 
 			obj.circ = Netlist([]);
-			obj.c_finished = false;
+			obj.finished = false;
 
-			obj.c_isadm = false;
+			obj.is_admit = false;
 			obj.node_iterator = 1;
 			obj.current_node = "IN";
 			obj.input_node = obj.current_node;
