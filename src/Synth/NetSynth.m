@@ -108,6 +108,11 @@ classdef NetSynth < handle
 
 				obj.c_finished = true;
 			end
+			ce = obj.getlastcauer(tn, td);
+			if ~isempty(ce)
+				obj.circ.add(ce);
+				obj.c_finished = true;
+			end
 
 		end
 
@@ -150,6 +155,11 @@ classdef NetSynth < handle
 				obj.circ.add(last_ind);
 				obj.circ.add(last_cap);
 
+				obj.c_finished = true;
+			end
+			ce = obj.getlastcauer(tn, td);
+			if ~isempty(ce)
+				obj.circ.add(ce);
 				obj.c_finished = true;
 			end
 
@@ -488,7 +498,7 @@ classdef NetSynth < handle
 		end %======================= genFoster2() =========================
 
 		function genFoster2(obj, p) %================= genFoster2() =======
-			
+
 			maxEval = p.Results.MaxEval;
 			synth_f_scale = p.Results.f_scale;
 			synth_Z0_scale = p.Results.Z0_scale;
@@ -509,7 +519,7 @@ classdef NetSynth < handle
 
 			% Scale circuit
 			obj.scaleComponents(synth_f_scale, synth_Z0_scale)
-			
+
 		end %========================== END genFoster2() ==================
 
 		function scaleComponents(obj, synth_f_scale, synth_Z0_scale)
