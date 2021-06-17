@@ -3,6 +3,8 @@ classdef NetSynth < handle
 	properties
 
 		stg % Stage to synthesize
+		num_orig
+		den_orig
 
 		% Parameters for Cauer 1st and 2nd for Synthesis
 		c_isadm % Is modelling admittance
@@ -50,6 +52,8 @@ classdef NetSynth < handle
 			obj.c_isadm = false;
 			obj.num = num;
 			obj.den = den;
+			obj.num_orig = num;
+			obj.den_orig = den;
 			obj.c_finished = false;
 
 			obj.circ = Netlist([]);
@@ -122,6 +126,9 @@ classdef NetSynth < handle
 
 			% Perform Foster II-form synthesis
 			[L, C, tn, td] = foster2el(obj.num, obj.den);
+
+			ind = CircElement(L, "H");
+			cap = CircElement(C, "F");
 
 			ind.nodes(1) = obj.current_node;
 
@@ -521,6 +528,25 @@ classdef NetSynth < handle
 			obj.scaleComponents(synth_f_scale, synth_Z0_scale)
 
 		end %========================== END genFoster2() ==================
+
+		function reset(obj)
+
+			obj.num = obj.num_orig;
+			obj.den = obj.den_orig;
+
+			obj.circ = Netlist([]);
+			obj.c_finished = false;
+
+			obj.c_isadm = false;
+			obj.node_iterator = 1;
+			obj.current_node = "IN";
+			obj.input_node = obj.current_node;
+			obj.output_node = "?";
+
+			obj.msg = [""];
+
+
+		end
 
 		function scaleComponents(obj, synth_f_scale, synth_Z0_scale)
 
