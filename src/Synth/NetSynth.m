@@ -67,6 +67,78 @@ classdef NetSynth < handle
 
 		end
 
+		function forms = realizable(obj)
+			
+			forms = [];
+			
+			% Create Polynomial class from numerator and denominator vecs
+			np = Polynomial(0);
+			dp = Polynomial(0);
+			np.setVec(obj.num);
+			dp.setVec(obj.den);
+			
+			%===== Initialize Variables used for Multiple Conditions ======
+			
+			% Lossless Driving Point (DP) function conditions
+			dpc1 = false;
+			dpc2 = false;
+			dpc3 = false;
+			dpc4 = false;
+			dpc5 = false;
+			dpc6 = false;
+			
+			%================== Evaluate Conditions =======================
+			
+			% DP Condition 1 (Poles and Zeros only on imag. axis)
+			dpc1 = true; %TODO: Implement
+			
+			% DP Condition 2 (Function is odd and rational)
+			if (rem(np.order(), 2) == 0 && rem(dp.order(), 2) == 1)...
+			|| (rem(np.order(), 2) == 1 && rem(dp.order(), 2) == 0 )
+				dpc2 = true;
+			end
+			
+			% DP Condition 3 (Num and Den order differ by exactly 1)
+			if (np.order() == dp.order()+1) || (np.order()+1 == dp.order())
+				dpc3 = true;
+			end
+			
+			% DP Condition 4 (All poles and zeros are simple)
+			dpc4 = true; %TODO: Implement
+			
+			% DP Condition 5 (Exept at poles, monotinically increasing)
+			dpc5 = true; %TODO: Implement
+			
+			% DP Condition 6 (0 and inf are CPs, CPs alternate btwn P & Z).
+			dpc6 = true; %TODO: Implement
+			
+			% Lossless DP Function Condition
+			lpd = dpc1 && dpc2 && dpc3 && dpc4 && dpc5 && dpc6;
+			
+			% TODO: Darlington?
+			
+			%=============== Evaluate Network Realizability ===============
+			
+			% Evaluate Foster Realizability
+			if lpd
+				forms = addTo(forms, "Foster1");
+				forms = addTo(forms, "Foster2");
+			end
+			
+			% Cauer I-form
+			if lpd && np.order() > dp.order()
+				forms = addTo(forms, "Cauer1");
+			end
+			
+			% Cauer II-form
+			if lpd && rem(np.order(), 2) == 0 && rem(dp.order(), 2) == 1
+				forms = addTo(forms, "Cauer2");
+			end
+			
+			
+			
+		end
+
 		function foster1(obj)
 
 			%TODO: What is num, den are currently and admittance function? Just flip?
@@ -212,6 +284,10 @@ classdef NetSynth < handle
 
 		function cauer1(obj) %=================== cauer1() ================
 
+			% Note: Admittance chcek is not done here because Y and Z are
+			% processed the same way - it's not until the output 'k' is found
+			% that Z vs Y manifest differently, hence the later check
+
 			% Perform Cauer II-form Synthesis
 			[k, tn, td] = cauer1el(obj.num, obj.den);
 
@@ -269,6 +345,10 @@ classdef NetSynth < handle
 		end %======================== END cauer1() ========================
 
 		function cauer2(obj) %============ cauer2() =======================
+
+			% Note: Admittance chcek is not done here because Y and Z are
+			% processed the same way - it's not until the output 'k' is found
+			% that Z vs Y manifest differently, hence the later check
 
 			% Perform Cauer I-form Synthesis
 			[k, tn, td] = cauer2el(obj.num, obj.den);
