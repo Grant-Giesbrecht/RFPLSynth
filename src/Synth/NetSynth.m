@@ -125,7 +125,12 @@ classdef NetSynth < handle
 			%TODO: What is num, den are currently and admittance function? Just flip?
 
 			% Perform Foster II-form synthesis
-			[L, C, tn, td] = foster2el(obj.num, obj.den);
+			%
+			% Note: these are flipped because my numerator and denominator
+			% refer to an admittance (Y) function inside this foster2()
+			% function but refer to an impedance (Z) in the remainder of
+			% the NetSynth class. I keep tn and td as referring to Y here.
+			[L, C, tn, td] = foster2el(obj.den, obj.num);
 
 			ind = CircElement(L, "H");
 			cap = CircElement(C, "F");
@@ -144,8 +149,13 @@ classdef NetSynth < handle
 			obj.circ.add(cap);
 
 			% Update numerator & denominator
-			obj.num = tn;
-			obj.den = td;
+			%
+			% Note: these are flipped because my numerator and denominator
+			% refer to an admittance (Y) function inside this foster2()
+			% function but refer to an impedance (Z) in the remainder of
+			% the NetSynth class.
+			obj.num = td;
+			obj.den = tn;
 
 			% TODO: Is this correct for Foster?
 			% Check for remainder == 0		TODO: Also check for tn == 0?
