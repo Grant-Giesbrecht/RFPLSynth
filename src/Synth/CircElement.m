@@ -42,6 +42,10 @@ classdef CircElement < handle
 			
 			s = strcat(scaled_str, "   (", nodestr, ")");
 			
+			if strcmp(obj.ref_type, "TL") && isKey(obj.props, "Z0")
+				s = strcat(s, "  [Z0 = ", string(obj.props("Z0")), " Ohms]");
+			end
+			
 		end
 		
 		function format(obj) %============== format() =====================
@@ -49,8 +53,13 @@ classdef CircElement < handle
 			ustr = string(obj.val_unit);
 			cu = char(obj.val_unit);
 			
-			[mult, baseUnit] = parseUnit(ustr);
-		
+			if length(ustr) > 1
+				[mult, baseUnit] = parseUnit(ustr);
+			else
+				mult = 1;
+				baseUnit = ustr;
+			end
+			
 			baseUnit = upper(baseUnit);
 			
 			switch baseUnit
@@ -65,7 +74,7 @@ classdef CircElement < handle
 				case "M"	% Transmission Lines
 					obj.ref_type = "TL";
 				otherwise	% Otherwise assume unit is type (ex. transistor 
-					obj.ref_type = obj.unit;
+					obj.ref_type = obj.val_unit;
 			end
 			
 		end %==================== END format() ============================
