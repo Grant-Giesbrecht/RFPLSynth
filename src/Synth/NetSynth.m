@@ -196,6 +196,63 @@ classdef NetSynth < handle
 
 
 		end
+		
+		function tf = richardStepZ(obj)
+			
+			%TODO: Check realizability
+			
+			% TODO: Determine how compatability with Foster and Cauer is
+			% affected, or if an actual transformation process is required
+			% other than just deciding it's now a function of t instead of
+			% s.
+			
+			
+			% Get Z numerator and denominator
+			if obj.is_admit
+				Z_num = obj.den;
+				Z_den = obj.num;
+			else
+				Z_num = obj.num;
+				Z_den = obj.den;
+			end
+			
+			% Define symbolic polynomial
+			syms t;
+			n = poly2sym(Z_num, t);
+			d = poly2sym(Z_den, t);
+			Z_t = n/d;
+			
+			% Define impedance of UE
+			Z_ue = subs(Z_t, t, 1);
+			
+			% Determine remaining Z function
+			Z_rem = Z_ue * (Z_t - t * Z_ue ) / (Z_ue - t * Z_t);
+			[tn, td] = sym2nd(Z_rem);
+			
+			% Create circuit element
+			tl = CircElement(1, "m"); %TODO: Fix length of line
+			tl.props("Z0") = Z_ue;
+			
+			tl.nodes(1) = obj.current_node;
+			
+			% Increment Node
+			obj.current_node = strcat("n", num2str(obj.node_iterator));
+			obj.node_iterator = obj.node_iterator + 1;
+
+			tl.nodes(2) = obj.current_node;
+			
+			obj.circ.add(tl);
+			
+			% Update numerator & denominator
+			if obj.is_admit
+				obj.num = td;
+				obj.den = tn;
+			else
+				obj.num = tn;
+				obj.den = td;
+			end
+			
+		end
 
 		function tf = foster1(obj)
 
@@ -253,8 +310,8 @@ classdef NetSynth < handle
 
 			% Update numerator & denominator
 			if obj.is_admit
-				Z_num = td;
-				Z_den = tn;
+				obj.num = td;
+				obj.den = tn;
 			else
 				obj.num = tn;
 				obj.den = td;
