@@ -63,11 +63,20 @@ classdef NetSynth < handle
 			obj.input_node = obj.current_node;
 			obj.output_node = "?";
 
-			obj.msg = [""];
+			obj.msg = [];
 
 		end
 
-		function forms = realizable(obj)
+		function [forms, m] = realizable(obj, varargin)
+
+			m = "";
+
+			% Parse optional parameter
+			expectedForms = {'Cauer1', 'Cauer2', 'Foster1', 'Foster2', 'None'};
+			p = inputParser;
+			p.addParameter('DetailedForm', 'None' ,@(x) any(validatestring(x,expectedForms))   );
+			p.parse(varargin{:});
+			detailedForm = p.Results.DetailedForm;
 
 			forms = [];
 
@@ -117,22 +126,71 @@ classdef NetSynth < handle
 
 			% TODO: Darlington?
 
+			% If Lossess DP function condition not met, specify why
+			ldp_msg = "";
+			if ~lpd
+				m = "Failed lossless-DP condition(s): ";
+				if ~dpc1
+					m = strcat(m, "1 ");
+				end
+				if ~dpc2
+					m = strcat(m, "2 ");
+				end
+				if ~dpc3
+					m = strcat(m, "3 ");
+				end
+				if ~dpc4
+					m = strcat(m, "4 ");
+				end
+				if ~dpc5
+					m = strcat(m, "5 ");
+				end
+				if ~dpc6
+					m = strcat(m, "6 ");
+				end
+			end
+
 			%=============== Evaluate Network Realizability ===============
+
+
 
 			% Evaluate Foster Realizability
 			if lpd
 				forms = addTo(forms, "Foster1");
 				forms = addTo(forms, "Foster2");
+			elseif detailedForm == "Foster1" || detailedForm == "Foster2"
+				m = ldp_msg;
 			end
 
 			% Cauer I-form
-			if lpd && np.order() > dp.order()
+			cauer1_cond1 = np.order() > dp.order();
+			if lpd && cauer1_cond1
 				forms = addTo(forms, "Cauer1");
+			elseif detailedForm == "Cauer1"
+				if ~lpd
+					m = strcat(ldp_msg, ".");
+				end
+				if ~cauer1_cond1
+					m = strcat(m, "Numerator order is not exactly 1 greater than denominator order.");
+				end
 			end
 
 			% Cauer II-form
-			if lpd && rem(np.order(), 2) == 0 && rem(dp.order(), 2) == 1
+			cauer2_cond1 = rem(np.order(), 2) == 0;
+			cauer2_cond2 = rem(dp.order(), 2) == 1;
+			if lpd && cauer2_cond1 && cauer2_cond2
 				forms = addTo(forms, "Cauer2");
+			elseif detailedForm == "Cauer2"
+				if ~lpd
+					m = strcat(ldp_msg, ".");
+				end
+				if ~cauer2_cond1
+					m = strcat(m, "Numerator is not even.");
+				end
+				if ~cauer2_cond2
+					m = strcat(m, "Denominator is not odd.");
+				end
+
 			end
 
 
@@ -144,10 +202,10 @@ classdef NetSynth < handle
 			tf = true;
 
 			% Check realizability criteria
-			formats = obj.realizable();
+			[formats, fm] = obj.realizable('DetailedForm', 'Foster1');
 			if ~any(formats == "Foster1")
 				tf = false;
-				msg = addTo(msg, "Cannot synthesize form 'Foster1' from current polynomial.")
+				obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Foster1' (", fm , ")"));
 				return;
 			end
 
@@ -220,10 +278,10 @@ classdef NetSynth < handle
 			tf = true;
 
 			% Check realizability criteria
-			formats = obj.realizable();
+			[formats, fm] = obj.realizable('DetailedForm', 'Foster2');
 			if ~any(formats == "Foster2")
 				tf = false;
-				msg = addTo(msg, "Cannot synthesize form 'Foster2' from current polynomial.")
+				obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Foster2' (", fm , ")"));
 				return;
 			end
 
@@ -305,12 +363,12 @@ classdef NetSynth < handle
 			tf = true;
 
 			% Check realizability criteria
-			formats = obj.realizable();
-			if ~any(formats == "Cauer1")
-				tf = false;
-				msg = addTo(msg, "Cannot synthesize form 'Cauer1' from current polynomial.")
-				return;
-			end
+			% [formats, fm] = obj.realizable('DetailedForm', 'Cauer1');
+			% if ~any(formats == "Cauer1")
+			% 	tf = false;
+			% 	obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Cauer1' (", fm , ")"));
+			% 	return;
+			% end
 
 			% Note: Admittance chcek is not done here because Y and Z are
 			% processed the same way - it's not until the output 'k' is found
@@ -377,12 +435,12 @@ classdef NetSynth < handle
 			tf = true;
 
 			% Check realizability criteria
-			formats = obj.realizable();
-			if ~any(formats == "Cauer2")
-				tf = false;
-				msg = addTo(msg, "Cannot synthesize form 'Cauer2' from current polynomial.")
-				return;
-			end
+			% [formats, fm] = obj.realizable('DetailedForm', 'Cauer2');
+			% if ~any(formats == "Cauer2")
+			% 	tf = false;
+			% 	obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Cauer2' (", fm , ")"));
+			% 	return;
+			% end
 
 			% Note: Admittance chcek is not done here because Y and Z are
 			% processed the same way - it's not until the output 'k' is found
@@ -618,105 +676,105 @@ classdef NetSynth < handle
 
 		end %==================== END generate() ==========================
 
-		function genCauer1(obj, p) %========== genCauer1() ================
-
-			maxEval = p.Results.MaxEval;
-			synth_f_scale = p.Results.f_scale;
-			synth_Z0_scale = p.Results.Z0_scale;
-
-			% Run cauer synthesis until entire circuit is extracted
-			count = 0;
-			while ~obj.finished % Check if completely extracted
-
-				% Rerun Cauer-1 algorithm
-				obj.cauer1();
-
-				% Increment counter
-				count = count +1;
-				if  count > maxEval
-					error("Maximum number of Cauer executions exceeded");
-				end
-			end
-
-			% Scale circuit
-			obj.scaleComponents(synth_f_scale, synth_Z0_scale)
-
-		end %============================ END genCauer1() =================
-
-		function genCauer2(obj, p) %============= genCauer2() =============
-
-			maxEval = p.Results.MaxEval;
-			synth_f_scale = p.Results.f_scale;
-			synth_Z0_scale = p.Results.Z0_scale;
-
-			% Run cauer synthesis until entire circuit is extracted
-			count = 0;
-			while ~obj.finished % Check if completely extracted
-
-				% Rerun Cauer-1 algorithm
-				obj.cauer2();
-
-				% Increment counter
-				count = count +1;
-				if  count > maxEval
-					error("Maximum number of Cauer executions exceeded");
-				end
-			end
-
-			% Scale circuit
-			obj.scaleComponents(synth_f_scale, synth_Z0_scale)
-
-		end %=================== END genCauer2() ==========================
-
-		function genFoster1(obj, p) %================== genFoster1() ======
-
-			maxEval = p.Results.MaxEval;
-			synth_f_scale = p.Results.f_scale;
-			synth_Z0_scale = p.Results.Z0_scale;
-
-			% Run cauer synthesis until entire circuit is extracted
-			count = 0;
-			while ~obj.finished % Check if completely extracted
-
-				% Rerun Cauer-1 algorithm
-				obj.foster1();
-
-				% Increment counter
-				count = count +1;
-				if  count > maxEval
-					error("Maximum number of Cauer executions exceeded");
-				end
-			end
-
-			% Scale circuit
-			obj.scaleComponents(synth_f_scale, synth_Z0_scale)
-
-		end %======================= genFoster2() =========================
-
-		function genFoster2(obj, p) %================= genFoster2() =======
-
-			maxEval = p.Results.MaxEval;
-			synth_f_scale = p.Results.f_scale;
-			synth_Z0_scale = p.Results.Z0_scale;
-
-			% Run cauer synthesis until entire circuit is extracted
-			count = 0;
-			while ~obj.finished % Check if completely extracted
-
-				% Rerun Cauer-1 algorithm
-				obj.foster2();
-
-				% Increment counter
-				count = count +1;
-				if  count > maxEval
-					error("Maximum number of Cauer executions exceeded");
-				end
-			end
-
-			% Scale circuit
-			obj.scaleComponents(synth_f_scale, synth_Z0_scale)
-
-		end %========================== END genFoster2() ==================
+		% function genCauer1(obj, p) %========== genCauer1() ================
+		%
+		% 	maxEval = p.Results.MaxEval;
+		% 	synth_f_scale = p.Results.f_scale;
+		% 	synth_Z0_scale = p.Results.Z0_scale;
+		%
+		% 	% Run cauer synthesis until entire circuit is extracted
+		% 	count = 0;
+		% 	while ~obj.finished % Check if completely extracted
+		%
+		% 		% Rerun Cauer-1 algorithm
+		% 		obj.cauer1();
+		%
+		% 		% Increment counter
+		% 		count = count +1;
+		% 		if  count > maxEval
+		% 			error("Maximum number of Cauer executions exceeded");
+		% 		end
+		% 	end
+		%
+		% 	% Scale circuit
+		% 	obj.scaleComponents(synth_f_scale, synth_Z0_scale)
+		%
+		% end %============================ END genCauer1() =================
+		%
+		% function genCauer2(obj, p) %============= genCauer2() =============
+		%
+		% 	maxEval = p.Results.MaxEval;
+		% 	synth_f_scale = p.Results.f_scale;
+		% 	synth_Z0_scale = p.Results.Z0_scale;
+		%
+		% 	% Run cauer synthesis until entire circuit is extracted
+		% 	count = 0;
+		% 	while ~obj.finished % Check if completely extracted
+		%
+		% 		% Rerun Cauer-1 algorithm
+		% 		obj.cauer2();
+		%
+		% 		% Increment counter
+		% 		count = count +1;
+		% 		if  count > maxEval
+		% 			error("Maximum number of Cauer executions exceeded");
+		% 		end
+		% 	end
+		%
+		% 	% Scale circuit
+		% 	obj.scaleComponents(synth_f_scale, synth_Z0_scale)
+		%
+		% end %=================== END genCauer2() ==========================
+		%
+		% function genFoster1(obj, p) %================== genFoster1() ======
+		%
+		% 	maxEval = p.Results.MaxEval;
+		% 	synth_f_scale = p.Results.f_scale;
+		% 	synth_Z0_scale = p.Results.Z0_scale;
+		%
+		% 	% Run cauer synthesis until entire circuit is extracted
+		% 	count = 0;
+		% 	while ~obj.finished % Check if completely extracted
+		%
+		% 		% Rerun Cauer-1 algorithm
+		% 		obj.foster1();
+		%
+		% 		% Increment counter
+		% 		count = count +1;
+		% 		if  count > maxEval
+		% 			error("Maximum number of Cauer executions exceeded");
+		% 		end
+		% 	end
+		%
+		% 	% Scale circuit
+		% 	obj.scaleComponents(synth_f_scale, synth_Z0_scale)
+		%
+		% end %======================= genFoster2() =========================
+		%
+		% function genFoster2(obj, p) %================= genFoster2() =======
+		%
+		% 	maxEval = p.Results.MaxEval;
+		% 	synth_f_scale = p.Results.f_scale;
+		% 	synth_Z0_scale = p.Results.Z0_scale;
+		%
+		% 	% Run cauer synthesis until entire circuit is extracted
+		% 	count = 0;
+		% 	while ~obj.finished % Check if completely extracted
+		%
+		% 		% Rerun Cauer-1 algorithm
+		% 		obj.foster2();
+		%
+		% 		% Increment counter
+		% 		count = count +1;
+		% 		if  count > maxEval
+		% 			error("Maximum number of Cauer executions exceeded");
+		% 		end
+		% 	end
+		%
+		% 	% Scale circuit
+		% 	obj.scaleComponents(synth_f_scale, synth_Z0_scale)
+		%
+		% end %========================== END genFoster2() ==================
 
 		function reset(obj)
 
