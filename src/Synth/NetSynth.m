@@ -233,6 +233,7 @@ classdef NetSynth < handle
 			% Create circuit element
 			tl = CircElement(1, "m"); %TODO: Fix length of line
 			tl.props("Z0") = Z_ue;
+			tl.props("Stub") = false;
 			
 			tl.nodes(1) = obj.current_node;
 			
@@ -271,6 +272,124 @@ classdef NetSynth < handle
 			end
 			
 		end
+		
+		function tf = richardStub(obj)
+			
+			%TODO: Check realizability
+			
+			
+			% TODO: Determine how compatability with Foster and Cauer is
+			% affected, or if an actual transformation process is required
+			% other than just deciding it's now a function of t instead of
+			% s.
+			
+			tf = true;
+			
+			% Get Z numerator and denominator
+			if obj.is_admit
+				Z_num = obj.den;
+				Z_den = obj.num;
+			else
+				Z_num = obj.num;
+				Z_den = obj.den;
+			end
+			
+			% Define Polynomial
+			np = Polynomial(0);
+			dp = Polynomial(0);
+			np.setVec(Z_num);
+			dp.setVec(Z_den);
+			
+			% Define symbolic polynomial
+			syms t;
+			n = poly2sym(Z_num, t);
+			d = poly2sym(Z_den, t);
+			Z_t = n/d;
+			
+			% Determine if open or shorted stub is to be extracted
+			extract_open = true;
+			if np.order() > dp.order()
+				extract_open = false;
+			end
+			
+			
+			if extract_open
+				
+				% Define impedance of UE
+				Z_ue = np.get(dp.order()-1)/dp.get(dp.get(order));
+				
+				% Get remainder polynomial
+				Z_rem = (Z_ue * Z_t)/(Z_ue - t * Z_t);
+				[tn, td] = sym2nd(Z_rem);
+				
+			else
+				
+				% Define impedance of UE
+				Z_ue = np.get(np.order())/dp.get(np.get(order)-1);
+				
+				% Get remainder polynomial
+				Z_rem = (Z_ue * Z_t)/(Z_ue - t * Z_t);
+				[tn, td] = sym2nd(Z_rem);
+			end
+			
+			% Create circuit element
+			tl = CircElement(1, "m"); %TODO: Fix length of line
+			tl.props("Z0") = Z_ue;
+			tl.props("Stub") = true;
+			
+			if extract_open
+				tl.props("Term") = "OPEN";
+				
+				tl.nodes(1) = obj.current_node;
+				tl.nodes(2) = strcat("n", num2str(obj.node_iterator));
+				
+				% Increment Node
+				obj.node_iterator = obj.node_iterator + 1;
+				
+			else
+				tl.props("Term") = "SHORT";
+				
+				tl.nodes(1) = obj.current_node;
+			
+				% Increment Node
+				obj.current_node = strcat("n", num2str(obj.node_iterator));
+				obj.node_iterator = obj.node_iterator + 1;
+
+				tl.nodes(2) = obj.current_node;
+				
+			end
+			
+			obj.circ.add(tl);
+			
+			% Update numerator & denominator
+			if obj.is_admit
+				obj.num = td;
+				obj.den = tn;
+			else
+				obj.num = tn;
+				obj.den = td;
+			end
+			
+			% Check for is last stage
+			np = Polynomial(0);
+			dp = Polynomial(0);
+			np.setVec(tn);
+			dp.setVec(td);
+			if np.order() == 0 && dp.order() == 0
+				obj.finished = true;
+				
+				R = CircElement(np.get(0)/dp.get(0), "Ohms");
+				R.nodes(1) = obj.current_node;
+				R.nodes(2) = "GND";
+				obj.output_node = obj.current_node;
+				
+				obj.circ.add(R);
+				
+			end
+			
+		end
+		
+		
 
 		function tf = foster1(obj)
 
