@@ -43,7 +43,18 @@ classdef CircElement < handle
 			s = strcat(scaled_str, "   (", nodestr, ")");
 			
 			if strcmp(obj.ref_type, "TL") && isKey(obj.props, "Z0")
-				s = strcat(s, "  [Z0 = ", string(obj.props("Z0")), " Ohms]");
+				s = strcat(s, "  [Z0 = ", string(obj.props("Z0")), " Ohms, ");
+				
+				if isKey(obj.props, "Stub") && islogical(obj.props("Stub")) && obj.props("Stub")
+					if isKey(obj.props, "Term") && strcmp(obj.props("Term"), "SHORT")
+						s = strcat(s, "Shorted Stub]");
+					else
+						s = strcat(s, "Open Stub]");
+					end
+				else
+					s = strcat(s, "TLine]");
+				end
+				
 			end
 			
 		end
