@@ -315,8 +315,10 @@ classdef NetSynth < handle
 			
 			if extract_open
 				
+				n = dp.order();
+				
 				% Define impedance of UE
-				Z_ue = np.get(dp.order()-1)/dp.get(dp.get(order));
+				Z_ue = np.get(n-1)/dp.get(n);
 				
 				% Get remainder polynomial
 				Z_rem = (Z_ue * Z_t)/(Z_ue - t * Z_t);
@@ -324,8 +326,10 @@ classdef NetSynth < handle
 				
 			else
 				
+				n = np.order();
+				
 				% Define impedance of UE
-				Z_ue = np.get(np.order())/dp.get(np.get(order)-1);
+				Z_ue = np.get(n)/dp.get(n-1);
 				
 				% Get remainder polynomial
 				Z_rem = (Z_ue * Z_t)/(Z_ue - t * Z_t);
@@ -858,7 +862,7 @@ classdef NetSynth < handle
 
 			%================= Parse Function Inputs ===================
 
-			expectedRoutines = {'Automatic', 'Cauer1', 'Cauer2', 'Foster1', 'Foster2', 'RichardStepZ'};
+			expectedRoutines = {'Automatic', 'Cauer1', 'Cauer2', 'Foster1', 'Foster2', 'Richard'};
 
 			p = inputParser;
 			p.addRequired('Routine', @(x) any(validatestring(x,expectedRoutines))   );
@@ -901,10 +905,18 @@ classdef NetSynth < handle
 							tf = false;
 							return
 						end
-					case "RichardStepZ"
-						if ~obj.richardStepZ()
-							tf = false;
-							return;
+					case "Richard"
+						
+						if length(obj.num) == length(obj.den)
+							if ~obj.richardStepZ()
+								tf = false;
+								return;
+							end
+						else
+							if ~obj.richardStub()
+								tf = false;
+								return;
+							end
 						end
 					otherwise
 						tf = false;
