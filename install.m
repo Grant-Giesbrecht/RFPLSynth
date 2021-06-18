@@ -1,5 +1,5 @@
 % List of relative directories (relative to install.m's location)
-folders = [fullfile("src", "SRFT"), fullfile("src", "Synth")];
+folders = [string(fullfile('src', 'SRFT')), string(fullfile('src', 'Synth'))];
 
 % Find out where 'install.m' is saved
 file_path = mfilename('fullpath'); % Get full path to this file
@@ -26,7 +26,7 @@ for fldr = folders
 	first = false;
 	
 	% Change to folder
-	cd(fullfile(local_dir, fldr));
+	cd(fullfile(local_dir, char(fldr)));
 	newpath = pwd;
 	disp(['Adding to path: >>', newpath, '<<']);
 	addpath(newpath);
