@@ -206,6 +206,7 @@ classdef NetSynth < handle
 			% other than just deciding it's now a function of t instead of
 			% s.
 			
+			tf = true;
 			
 			% Get Z numerator and denominator
 			if obj.is_admit
@@ -250,6 +251,23 @@ classdef NetSynth < handle
 			else
 				obj.num = tn;
 				obj.den = td;
+			end
+			
+			% Check for is last stage
+			np = Polynomial(0);
+			dp = Polynomial(0);
+			np.setVec(tn);
+			dp.setVec(td);
+			if np.order() == 0 && dp.order() == 0
+				obj.finished = true;
+				
+				R = CircElement(np.get(0)/dp.get(0), "Ohms");
+				R.nodes(1) = obj.current_node;
+				R.nodes(2) = "GND";
+				obj.output_node = obj.current_node;
+				
+				obj.circ.add(R);
+				
 			end
 			
 		end
@@ -721,7 +739,7 @@ classdef NetSynth < handle
 
 			%================= Parse Function Inputs ===================
 
-			expectedRoutines = {'Automatic', 'Cauer1', 'Cauer2', 'Foster1', 'Foster2'};
+			expectedRoutines = {'Automatic', 'Cauer1', 'Cauer2', 'Foster1', 'Foster2', 'RichardStepZ'};
 
 			p = inputParser;
 			p.addRequired('Routine', @(x) any(validatestring(x,expectedRoutines))   );
@@ -745,36 +763,41 @@ classdef NetSynth < handle
 				% Call appropriate synthesis function
 				switch routine
 					case "Cauer1"
-						if ~obj.cauer1();
+						if ~obj.cauer1()
 							tf = false;
 							return
 						end
 					case "Cauer2"
-						if ~obj.cauer2();
+						if ~obj.cauer2()
 							tf = false;
 							return
 						end
 					case "Foster1"
-						if ~obj.foster1();
+						if ~obj.foster1()
 							tf = false;
 							return
 						end
 					case "Foster2"
-						if ~obj.foster2();
+						if ~obj.foster2()
 							tf = false;
 							return
 						end
+					case "RichardStepZ"
+						if ~obj.richardStepZ()
+							tf = false;
+							return;
+						end
 					otherwise
-						error("Unexpected value for routine");
 						tf = false;
+						error("Unexpected value for routine");
 						return;
 				end
 
 				% Increment counter
 				count = count +1;
 				if  count > maxEval
-					error("Maximum number of synthesis actions exceeded");
 					tf = false;
+					error("Maximum number of synthesis actions exceeded");
 				end
 
 			end
