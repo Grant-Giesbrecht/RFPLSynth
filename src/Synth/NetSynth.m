@@ -204,9 +204,22 @@ classdef NetSynth < handle
 			% Check realizability criteria
 			[formats, fm] = obj.realizable('DetailedForm', 'Foster1');
 			if ~any(formats == "Foster1")
-				tf = false;
-				obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Foster1' (", fm , ")"));
-				return;
+				
+				% Try flipping poly
+				obj.is_admit = ~obj.is_admit;
+				temp = obj.num;
+				obj.num = obj.den;
+				obj.den = temp;
+				[formats, fm] = obj.realizable('DetailedForm', 'Foster1');
+				
+				if ~any(formats == "Foster1")
+					tf = false;
+					obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Foster1' (", fm , ")"));
+					return;
+				else
+					obj.msg = addTo(obj.msg, "To realize as Foster1, function was inverted.");
+				end
+				
 			end
 
 			% Get Z numerator and denominator
@@ -280,9 +293,21 @@ classdef NetSynth < handle
 			% Check realizability criteria
 			[formats, fm] = obj.realizable('DetailedForm', 'Foster2');
 			if ~any(formats == "Foster2")
-				tf = false;
-				obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Foster2' (", fm , ")"));
-				return;
+				
+				% Try flipping poly
+				obj.is_admit = ~obj.is_admit;
+				temp = obj.num;
+				obj.num = obj.den;
+				obj.den = temp;
+				[formats, fm] = obj.realizable('DetailedForm', 'Foster2');
+				
+				if ~any(formats == "Foster2")
+					tf = false;
+					obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Foster2' (", fm , ")"));
+					return;
+				else
+					obj.msg = addTo(obj.msg, "To realize as Foster2, function was inverted.");
+				end
 			end
 
 			% Get Y numerator and denominator
@@ -363,12 +388,24 @@ classdef NetSynth < handle
 			tf = true;
 
 			% Check realizability criteria
-			% [formats, fm] = obj.realizable('DetailedForm', 'Cauer1');
-			% if ~any(formats == "Cauer1")
-			% 	tf = false;
-			% 	obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Cauer1' (", fm , ")"));
-			% 	return;
-			% end
+			[formats, fm] = obj.realizable('DetailedForm', 'Cauer1');
+			if ~any(formats == "Cauer1")
+				
+				% Try flipping poly
+				obj.is_admit = ~obj.is_admit;
+				temp = obj.num;
+				obj.num = obj.den;
+				obj.den = temp;
+				[formats, fm] = obj.realizable('DetailedForm', 'Cauer1');
+				
+				if ~any(formats == "Cauer1")
+					tf = false;
+					obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Cauer1' (", fm , ")"));
+					return;
+				else
+					obj.msg = addTo(obj.msg, "To realize as Cauer1, function was inverted.");
+				end
+			end
 
 			% Note: Admittance chcek is not done here because Y and Z are
 			% processed the same way - it's not until the output 'k' is found
@@ -435,12 +472,27 @@ classdef NetSynth < handle
 			tf = true;
 
 			% Check realizability criteria
-			% [formats, fm] = obj.realizable('DetailedForm', 'Cauer2');
-			% if ~any(formats == "Cauer2")
-			% 	tf = false;
-			% 	obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Cauer2' (", fm , ")"));
-			% 	return;
-			% end
+			[formats, fm] = obj.realizable('DetailedForm', 'Cauer2');
+			if ~any(formats == "Cauer2")
+				
+				% Try flipping poly
+				obj.is_admit = ~obj.is_admit;
+				temp = obj.num;
+				obj.num = obj.den;
+				obj.den = temp;
+				[formats, fm] = obj.realizable('DetailedForm', 'Cauer2');
+				
+				if ~any(formats == "Cauer1")
+					tf = false;
+					obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Cauer2' (", fm , ")"));
+					return;
+				else
+					obj.msg = addTo(obj.msg, "To realize as Cauer2, function was inverted.");
+				end
+				
+			end
+			
+			
 
 			% Note: Admittance chcek is not done here because Y and Z are
 			% processed the same way - it's not until the output 'k' is found
