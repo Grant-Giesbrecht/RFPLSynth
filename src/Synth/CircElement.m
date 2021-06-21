@@ -73,6 +73,14 @@ classdef CircElement < handle
 			
 			baseUnit = upper(baseUnit);
 			
+			% Handle many units of electical length in the switch below
+			if strcmp(baseUnit, "DEGREE") || strcmp(baseUnit, "DEGREES")
+				baseUnit = "DEG";
+			end
+			if strcmp(baseUnit, "RADIAN") || strcmp(baseUnit, "RADIANS")
+				baseUnit = "DEG";
+			end
+			
 			switch baseUnit
 				case "F"	% Capacitors
 					obj.ref_type = "C";
@@ -83,6 +91,10 @@ classdef CircElement < handle
 				case "R"	% Resistors
 					obj.ref_type = "R";
 				case "M"	% Transmission Lines
+					obj.ref_type = "TL";
+				case "DEG"	% Transmission Lines
+					obj.ref_type = "TL";
+				case "RAD"	% Transmission Lines
 					obj.ref_type = "TL";
 				otherwise	% Otherwise assume unit is type (ex. transistor 
 					obj.ref_type = obj.val_unit;
