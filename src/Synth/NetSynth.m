@@ -20,7 +20,10 @@ classdef NetSynth < handle
 		output_node
 
 		msg
-
+		
+		freq % Frequency
+		vel % Propagation speed
+		vf_init 
 	end
 
 	methods
@@ -64,7 +67,15 @@ classdef NetSynth < handle
 			obj.output_node = "?";
 
 			obj.msg = [];
+			
+			obj.vel = "Not Initialized";
+			obj.freq = "Not Initialized";
 
+		end
+		
+		function initFreqVF(v, f)
+			obj.vel = v;
+			obj.freq = f;
 		end
 
 		function [forms, m] = realizable(obj, varargin)
@@ -195,6 +206,100 @@ classdef NetSynth < handle
 
 
 
+		end
+		
+		function tf = changeZaddStubs(obj, varargin)
+			
+% 			expectedRoutines = {'Automatic', 'Cauer1', 'Cauer2', 'Foster1', 'Foster2', 'Richard'};
+% 
+% 			p = inputParser;
+% 			p.addRequired('Routine', @(x) any(validatestring(x,expectedRoutines))   );
+% 			p.addParameter('MaxEval', 20, @(x) x > 0);
+% 			p.addParameter('Simplification', 0, @(x) x >= 0); %TODO: Implement
+% 			p.addParameter('f_scale', 1, @(x) x > 0);
+% 			p.addParameter('Z0_scale', 1, @(x) x > 0);
+% 
+% 			p.parse(varargin{:});
+% 
+% 			routine = string(p.Results.Routine);
+
+
+			Zs = [];
+			Z_stubs = [];
+			Elmnst_idx = [];
+			
+			
+			idx = 0
+			for e = elmts_idx
+				idx = idx + 1;
+				
+				obj.raiseZ(e, Zs);
+				
+			end
+			
+			obj.circ.simplify();
+			
+			for t = elmts_idx
+				obj.toStub(e, Zs)
+			end
+			
+		end
+		
+		function tf = raiseZ(obj, eidx, ZB)
+			
+			% Ensure not out of bounds
+			if length(obj.circ.components) < eidx
+				warning("Out of bounds");
+				tf = false;
+				return;
+			end
+			
+			% Ensure correct component type
+			if ~strcmp(obj.circ.components(eidx).ref_type, "TL")
+				warning("Incorrect component type");
+				tf = false;
+				return;
+			end
+			
+			% Ensure impedance starts higher than 'Z' and 'Z0' is specified
+			if ~isKey(obj.circ.components(eidx).props, "Z0") || obj.circ.components(eidx).props("Z0") > ZB
+				warning("Wrong impedance change direction");
+				tf = false;
+				return;
+			end
+			
+			% Get original length
+			[mult, baseUnit] = parseUnit(obj.circ.components(eidx).val_unit);
+			if strcmp(baseUnit, "DEG") || strcmp(baseUnit, "DEGREE") || strcmp(baseUnit, "DEGREES")
+				theta_A = obj.circ.components(eidx).val * mult / 180 * 3.1415926535;
+			elseif strcmp(baseUnit, "RAD") || strcmp(baseUnit, "RADIAN") || strcmp(baseUnit, "RADIANS")
+				theta_A = obj.circ.components(eidx).val * mult;
+			elseif strcmp(baseUnit, "M")
+				theta_A = obj.virc.components(eidx).val / obj.vel * obj.freq;
+			end
+			
+			% Get new length
+			theta_B = asin(obj.circ.components(eidx).props("Z0")/ZB*sin(theta_A));
+			Z_L = sqrt(-1)*ZB*sin(theta_B)/(cos(theta_A) - cos(theta_B));
+			
+			% Create shunt elements
+			ce1 = CircElement(1/(2*3.1415926535*Z_L), "F");
+			ce1.props("ConvertToStub") = true;
+			
+			ce2 = CircElement(1/(2*3.1415926535*Z_L), "F");
+			ce2.props("ConvertToStub") = true;
+			
+			ce1.nodes(1) = obj.circ.components(eidx).nodes(1);
+			ce1.nodes(2) = "GND";
+			ce2.nodes(1) = obj.circ.components(eidx).nodes(2);
+			ce2.nodes(2) = "GND";
+			
+			% Change transmission line impedance
+			obj.circ.components(eidx).props("Z0") = ZB;
+			
+			% Add new elements
+			obj.circ.components = [obj.circ.components(1:eidx-1), ce1, obj.circ.components(eidx), ce2, obj.circ.components(eidx+1:end)];
+			
 		end
 		
 		function tf = richardStepZ(obj)
