@@ -210,38 +210,62 @@ classdef NetSynth < handle
 		
 		function tf = changeZaddStubs(obj, varargin)
 			
-% 			expectedRoutines = {'Automatic', 'Cauer1', 'Cauer2', 'Foster1', 'Foster2', 'Richard'};
-% 
-% 			p = inputParser;
-% 			p.addRequired('Routine', @(x) any(validatestring(x,expectedRoutines))   );
-% 			p.addParameter('MaxEval', 20, @(x) x > 0);
-% 			p.addParameter('Simplification', 0, @(x) x >= 0); %TODO: Implement
-% 			p.addParameter('f_scale', 1, @(x) x > 0);
-% 			p.addParameter('Z0_scale', 1, @(x) x > 0);
-% 
-% 			p.parse(varargin{:});
-% 
-% 			routine = string(p.Results.Routine);
-
-
-			Zs = [];
-			Z_stubs = [];
-			Elmnst_idx = [];
 			
+		
+			p = inputParser;
+			p.addParameter('Zmin', 35, @(x) x > 0 );
+			p.addParameter('Zmax', 100, @(x) x > 0);
+			p.addParameter('Index', -1, @isnumeric);
+
+			p.parse(varargin{:});
+
+			Zmin = p.Results.Zmin;
+			Zmax = p.Results.Zmax;
 			
-			idx = 0
-			for e = elmts_idx
-				idx = idx + 1;
+			% Check Zmax and Zmin
+			if Zmax < Zmin
+				warning("Zmax is less than Zmin");
+				temp = Zmax;
+				Zmax = Zmin;
+				Zmin = temp;
+			end
+			
+			% Get indexes
+			elmts_idx = [];
+			if p.Results.Index == -1 % Use all indeces if -1
 				
-				obj.raiseZ(e, Zs);
+				for e = obj.circ.components 
+					if e.ref_type == "TL" && isKey(e.props, "Z0") % Add to list if is  TL and has Z0 defined
+						elmts_idx = addTo(elmts_idx, e.unique_id);
+					end
+				end
 				
+			else
+				elmts_idx = p.Results.Index;
+			end
+		
+			% Check each listed TL, see if in bounds
+			for id = elmts_idx
+				
+				idx = obj.circ.ID2Idx(id);
+				
+				if obj.circ.components(idx).props("Z0") < Zmin 
+					obj.raiseZ(idx, Zmin);
+				elseif obj.circ.components(idx).props("Z0") > Zmax
+					obj.lowerZ(idx, Zmax);
+				end
+			
 			end
 			
 			obj.circ.simplify();
 			
 			for t = elmts_idx
-				obj.toStub(e, Zs)
+				obj.toStub()
 			end
+			
+		end
+		
+		function tf = lowerZ(obj, eidx, ZB)
 			
 		end
 		
@@ -302,11 +326,15 @@ classdef NetSynth < handle
 			obj.circ.components(eidx).val_unit = "DEG";
 			
 			% Add new elements
-			obj.circ.components = [obj.circ.components(1:eidx-1), ce1, obj.circ.components(eidx), ce2, obj.circ.components(eidx+1:end)];
+			obj.circ.addAt(ce2, eidx+1);
+			obj.circ.addAt(ce1, eidx);
+% 			obj.circ.components = [obj.circ.components(1:eidx-1), ce1, obj.circ.components(eidx), ce2, obj.circ.components(eidx+1:end)];
 			
 		end
 		
 		function tf = toStub(obj)
+			
+			tf = true;
 			
 			% For each element...
 			for el = obj.circ.components
@@ -344,7 +372,6 @@ classdef NetSynth < handle
 				
 				% Increment Node
 				obj.node_iterator = obj.node_iterator + 1;
-				
 				
 			end
 			
