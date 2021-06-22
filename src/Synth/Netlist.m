@@ -25,6 +25,55 @@ classdef Netlist < handle
 			obj.components = addTo(obj.components, elmnt);
 		end
 
+		function tf = simplify(obj)
+		%
+		%
+		%	* purge shorts
+		%   * Combine parallel elements
+		%	* Combine shunt elements
+		%
+		
+			%TODO: Fix this so it works with any and all topologies, not
+			%just ladder
+			
+			del_idx = [];
+			
+			% Loop over each element
+			ei = 0;
+			while ei < length(obj.components)-1
+				
+				% Increment counter
+				ei = ei + 1;
+				
+				% Skip if first node does not match
+				if obj.components(ei).nodes(1) ~= obj.components(ei+1).nodes(1)
+					continue;
+				end
+				
+				% Skip if 2nd node does not match
+				if obj.components(ei).nodes(2) ~= obj.components(ei+1).nodes(2)
+					continue;
+				end
+				
+				% Skip if not same type of component
+				if ~strcmp(obj.components(ei).ref_type, obj.components(ei+1).ref_type)
+					continue;
+				end
+				
+				% Combine elements
+				obj.components(ei).val = obj.components(ei).val + obj.components(ei+1).val;
+				
+				% Mark second for deletion
+				del_idx = addTo(del_idx, ei+1);
+				
+				% Increment counter again if elements combined
+				ei = ei + 1;
+			end
+			
+			obj.components(del_idx) = [];
+		
+		end
+		
 		function purge(obj, varargin)
 
 			%TODO: Fix how this works when not just ladder, removing
