@@ -1,4 +1,5 @@
 synth = NetSynth([1], [1]);
+synth.freq = 1e9;
 
 tl1 = CircElement(90, "DEG");
 tl1.props("Z0") = 26;
@@ -14,6 +15,7 @@ tl3 = CircElement(90, "DEG");
 tl3.props("Z0") = 18.5;
 tl3.nodes(1) = "n2";
 tl3.nodes(2) = "OUT";
+synth.node_iterator = 3;
 
 synth.circ.add(tl1);
 synth.circ.add(tl2);
@@ -26,5 +28,9 @@ synth.raiseZ(7, 40);
 displ(synth.circ.str());
 
 synth.circ.simplify();
+
+displ(newline, synth.circ.str());
+
+synth.toStub();
 
 displ(newline, synth.circ.str());
