@@ -280,25 +280,73 @@ classdef NetSynth < handle
 			
 			% Get new length
 			theta_B = asin(obj.circ.components(eidx).props("Z0")/ZB*sin(theta_A));
-			Z_L = sqrt(-1)*ZB*sin(theta_B)/(cos(theta_A) - cos(theta_B));
+			Z_L = 1/((cos(theta_B) - cos(theta_A)) / (ZB*sin(theta_B)));
 			
 			% Create shunt elements
-			ce1 = CircElement(1/(2*3.1415926535*Z_L), "F");
+			ce1 = CircElement(1/(2*3.1415926535*obj.freq*Z_L), "F");
 			ce1.props("ConvertToStub") = true;
+			ce1.props("StubZ") = ZB;
 			
-			ce2 = CircElement(1/(2*3.1415926535*Z_L), "F");
+			ce2 = CircElement(1/(2*3.1415926535*obj.freq*Z_L), "F");
 			ce2.props("ConvertToStub") = true;
+			ce2.props("StubZ") = ZB;
 			
 			ce1.nodes(1) = obj.circ.components(eidx).nodes(1);
 			ce1.nodes(2) = "GND";
 			ce2.nodes(1) = obj.circ.components(eidx).nodes(2);
 			ce2.nodes(2) = "GND";
 			
-			% Change transmission line impedance
+			% Change transmission line values
 			obj.circ.components(eidx).props("Z0") = ZB;
+			obj.circ.components(eidx).val = theta_B*180/3.1415926535;
+			obj.circ.components(eidx).val_unit = "DEG";
 			
 			% Add new elements
 			obj.circ.components = [obj.circ.components(1:eidx-1), ce1, obj.circ.components(eidx), ce2, obj.circ.components(eidx+1:end)];
+			
+		end
+		
+		function tf = toStub(obj)
+			
+			% For each element...
+			for el = obj.circ.components
+				
+				% Skip elements not marked for stub conversion
+				if ~isKey(el.props, "ConvertToStub") || el.props("ConvertToStub") == false
+					continue;
+				end
+				
+				% Get stub impedance
+				if ~isKey(el.props, "StubZ")
+					warning("Missing new impedance for stub conversion");
+					Zstub = 50;
+				else
+					Zstub = el.props("StubZ");
+				end
+				
+				% Get element impedance
+				[mult, ~] = parseUnit(el.val_unit);
+				Zl = 1/(2*3.1415926535*obj.freq*el.val*mult);
+				Xl = 1/Zl;
+				
+				% Get stub length
+				theta_L = atan(Zstub * Xl);
+				
+				% Change element
+				el.props("ConvertToStub") = false;
+				el.val = theta_L*180/3.1415926535;
+				el.val_unit = "DEG";
+				el.ref_type = "TL";
+				el.props("Stub") = true;
+				el.props("Term") = "OPEN";
+				el.nodes(2) = strcat("n", num2str(obj.node_iterator));
+				el.props("Z0") = Zstub;
+				
+				% Increment Node
+				obj.node_iterator = obj.node_iterator + 1;
+				
+				
+			end
 			
 		end
 		
