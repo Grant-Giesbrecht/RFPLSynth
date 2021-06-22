@@ -19,4 +19,12 @@ synth.circ.add(tl1);
 synth.circ.add(tl2);
 synth.circ.add(tl3);
 
-synth.lowerZ(1, 40);
+synth.raiseZ(1, 40);
+synth.raiseZ(4, 40);
+synth.raiseZ(7, 40);
+
+displ(synth.circ.str());
+
+synth.circ.simplify();
+
+displ(newline, synth.circ.str());
