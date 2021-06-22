@@ -9,6 +9,8 @@ classdef CircElement < handle
 		val_unit;
 		part_no;
 		props;
+		
+		unique_id;
 	end
 	
 	methods
@@ -22,6 +24,8 @@ classdef CircElement < handle
 			obj.props = containers.Map; % Other properties (ex. for transmission lines)
 			
 			obj.format();
+			
+			obj.unique_id = -1;
 		end
 		
 		function s = str(obj)

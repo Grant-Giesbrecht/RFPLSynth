@@ -3,16 +3,25 @@ classdef Netlist < handle
 	properties
 
 		components
+		
+		next_unique_id
 
 	end
 
 	methods
 		function obj = Netlist(comp)
 			obj.components = comp;
+			
+			obj.next_unique_id = 1;
 		end
 
-		function tf = add(obj, elmnt)
-
+		function tf = addAt(obj, elmnt, idx)
+		%
+		% components = [A, B, C, D]
+		% addTo(X, 3)
+		% components = [A, B, X, C, D];
+		%
+			
 			tf = true;
 			
 			% Verify that correct type is being added
@@ -22,7 +31,34 @@ classdef Netlist < handle
 				return;
 			end
 
-			obj.components = addTo(obj.components, elmnt);
+			% Assign a unique ID to the element
+			elmnt.unique_id = obj.next_unique_id;
+			obj.next_unique_id = obj.next_unique_id + 1;
+			
+			obj.components = [obj.components(1:idx-1), elmnt, obj.components(idx:end)];
+			
+		end
+		
+		function tf = add(obj, elmnt)
+
+			obj.addAt(elmnt, length(obj.components)+1);
+			
+		end
+		
+		function idx = ID2Idx(obj, ID)
+			
+			index = 0;
+			for e = obj.components
+				
+				index = index + 1;
+				
+				if e.unique_id == ID
+					idx = index;
+					return;
+				end
+				
+			end
+			
 		end
 
 		function tf = simplify(obj)
