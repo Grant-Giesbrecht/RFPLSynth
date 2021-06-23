@@ -72,11 +72,33 @@ classdef Netlist < handle
 			%TODO: Fix this so it works with any and all topologies, not
 			%just ladder
 			
-			del_idx = [];
 			
-			% Loop over each element
+			
+			% Combine serial and parallel components until no more
+			% simplifications can be mades
+			modified = true;
+			while modified
+				
+				% Combine parallel components
+				modified = obj.pallCombine();
+				
+				% Combine serial components
+				modified = modified || obj.serCombine();
+				
+			end
+			
+			
+		
+		end
+		
+		function mod = pallCombine(obj)
+			
+			del_idx = [];
+			mod = false;
+			
+			% Combine parallel elements
 			ei = 0;
-			while ei < length(obj.components)-1
+			while ei < length(obj.components)-1 % Loop over each element
 				
 				% Increment counter
 				ei = ei + 1;
@@ -97,7 +119,15 @@ classdef Netlist < handle
 				end
 				
 				% Combine elements
-				obj.components(ei).val = obj.components(ei).val + obj.components(ei+1).val;
+				if strcmp(obj.components(ei).ref_type, "C")
+					obj.components(ei).val = obj.components(ei).val + obj.components(ei+1).val;
+				elseif strcmp(obj.components(ei).ref_type, "L") || strcmp(obj.components(ei).ref_type, "R")
+					obj.components(ei).val = pall( obj.components(ei).val, obj.components(ei+1).val);
+				else
+					continue;
+				end
+				
+				mod = true;
 				
 				% Mark second for deletion
 				del_idx = addTo(del_idx, ei+1);
@@ -106,8 +136,53 @@ classdef Netlist < handle
 				ei = ei + 1;
 			end
 			
+			% Delete combined components
 			obj.components(del_idx) = [];
+			
+		end
 		
+		function mod = serCombine(obj)
+			
+			del_idx = [];
+			mod = false;
+			
+			% Combine series elements
+			ei = 0;
+			while ei < length(obj.components)-1 % Loop over each element
+				
+				% Increment counter
+				ei = ei + 1;
+				
+				% Skip if elements dont share any nodes
+				if ~isSeries(obj.components(ei), obj.components(ei+1))
+					continue;
+				end
+				
+				% Skip if not same type of component
+				if ~strcmp(obj.components(ei).ref_type, obj.components(ei+1).ref_type)
+					continue;
+				end
+				
+				% Combine elements
+				if strcmp(obj.components(ei).ref_type, "C")
+					obj.components(ei).val = pall( obj.components(ei).val, obj.components(ei+1).val);
+				elseif strcmp(obj.components(ei).ref_type, "L") || strcmp(obj.components(ei).ref_type, "R")
+					obj.components(ei).val = obj.components(ei).val + obj.components(ei+1).val;
+				else
+					continue;
+				end
+				
+				mod = true;
+				
+				% Mark second for deletion
+				del_idx = addTo(del_idx, ei+1);
+				
+				% Increment counter again if elements combined
+				ei = ei + 1;
+			end
+			
+			% Delete combined components
+			obj.components(del_idx) = [];
 		end
 		
 		function purge(obj, varargin)
