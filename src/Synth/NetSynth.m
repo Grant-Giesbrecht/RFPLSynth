@@ -424,20 +424,25 @@ classdef NetSynth < handle
 					el.props("Term") = "OPEN";
 					el.nodes(2) = strcat("n", num2str(obj.node_iterator));
 					
+					% Get stub length
+					theta_L = atan(Zstub * Xl);
+					
 				elseif strcmp(el.ref_type, "L")
 					Zl = 2*3.1415926535*obj.freq*el.val*mult;
 					Xl = Zl;
 					
 					el.props("Term") = "SHORT";
 				
+					% Get stub length
+					theta_L = atan(Xl/Zstub);
+					
 				else
 					warning(strcat("No rule for processing element type '", el.ref_type, "'."));
 					continue;
 				end
 				
 				
-				% Get stub length
-				theta_L = atan(Zstub * Xl);
+				
 				
 				% Change element
 				el.props("ConvertToStub") = false;
