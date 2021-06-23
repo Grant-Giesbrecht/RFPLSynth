@@ -267,6 +267,69 @@ classdef NetSynth < handle
 		
 		function tf = lowerZ(obj, eidx, ZB)
 			
+			% Ensure not out of bounds
+			if length(obj.circ.components) < eidx
+				warning("Out of bounds");
+				tf = false;
+				return;
+			end
+			
+			% Ensure correct component type
+			if ~strcmp(obj.circ.components(eidx).ref_type, "TL")
+				warning("Incorrect component type");
+				tf = false;
+				return;
+			end
+			
+			% Ensure impedance starts higher than 'Z' and 'Z0' is specified
+			if ~isKey(obj.circ.components(eidx).props, "Z0") || obj.circ.components(eidx).props("Z0") < ZB
+				warning("Wrong impedance change direction");
+				tf = false;
+				return;
+			end
+			
+			% Get original length
+			[mult, baseUnit] = parseUnit(obj.circ.components(eidx).val_unit);
+			if strcmp(baseUnit, "DEG") || strcmp(baseUnit, "DEGREE") || strcmp(baseUnit, "DEGREES")
+				theta_A = obj.circ.components(eidx).val * mult / 180 * 3.1415926535;
+			elseif strcmp(baseUnit, "RAD") || strcmp(baseUnit, "RADIAN") || strcmp(baseUnit, "RADIANS")
+				theta_A = obj.circ.components(eidx).val * mult;
+			elseif strcmp(baseUnit, "M")
+				theta_A = obj.virc.components(eidx).val / obj.vel * obj.freq;
+			end
+			
+			% Get new length
+			theta_B = asin(ZB/obj.circ.components(eidx).props("Z0")*sin(theta_A));
+			Z_L = (cos(theta_B) - cos(theta_A))*ZB / (sin(theta_B));
+			
+			% Create shunt elements
+			ce1 = CircElement(Z_L/(2*3.1415926535*obj.freq), "H");
+			ce1.props("ConvertToStub") = true;
+			ce1.props("StubZ") = ZB;
+			
+			ce2 = CircElement(Z_L/(2*3.1415926535*obj.freq), "H");
+			ce2.props("ConvertToStub") = true;
+			ce2.props("StubZ") = ZB;
+			
+			% Set nodes
+			ce1.nodes(1) = obj.circ.components(eidx).nodes(1);
+			obj.circ.components(eidx).nodes(1) = strcat("n", num2str(obj.node_iterator));	
+			obj.node_iterator = obj.node_iterator + 1;
+			ce1.nodes(2) = obj.circ.components(eidx).nodes(1);
+			ce2.nodes(2) = obj.circ.components(eidx).nodes(2);
+			obj.circ.components(eidx).nodes(2) = strcat("n", num2str(obj.node_iterator));	
+			obj.node_iterator = obj.node_iterator + 1;
+			ce2.nodes(1) = "GND";
+			
+			% Change transmission line values
+			obj.circ.components(eidx).props("Z0") = ZB;
+			obj.circ.components(eidx).val = theta_B*180/3.1415926535;
+			obj.circ.components(eidx).val_unit = "DEG";
+			
+			% Add new elements
+			obj.circ.addAt(ce2, eidx+1);
+			obj.circ.addAt(ce1, eidx);
+			
 		end
 		
 		function tf = raiseZ(obj, eidx, ZB)
@@ -354,8 +417,17 @@ classdef NetSynth < handle
 				
 				% Get element impedance
 				[mult, ~] = parseUnit(el.val_unit);
-				Zl = 1/(2*3.1415926535*obj.freq*el.val*mult);
-				Xl = 1/Zl;
+				if strcmp(el.ref_type, "C")
+					Zl = 1/(2*3.1415926535*obj.freq*el.val*mult);
+					Xl = 1/Zl;
+				elseif strcmp(el.ref_type, "L")
+					Zl = 2*3.1415926535*obj.freq*el.val*mult;
+					Xl = Zl;
+				else
+					warning(strcat("No rule for processing element type '", el.ref_type, "'."));
+					continue;
+				end
+				
 				
 				% Get stub length
 				theta_L = atan(Zstub * Xl);
