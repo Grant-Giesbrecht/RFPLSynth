@@ -260,7 +260,7 @@ classdef NetSynth < handle
 			obj.circ.simplify();
 			
 			for t = elmts_idx
-				obj.toStub()
+				obj.toStub();
 			end
 			
 		end
@@ -319,7 +319,7 @@ classdef NetSynth < handle
 			ce2.nodes(2) = obj.circ.components(eidx).nodes(2);
 			obj.circ.components(eidx).nodes(2) = strcat("n", num2str(obj.node_iterator));	
 			obj.node_iterator = obj.node_iterator + 1;
-			ce2.nodes(1) = "GND";
+			ce2.nodes(1) = obj.circ.components(eidx).nodes(2);
 			
 			% Change transmission line values
 			obj.circ.components(eidx).props("Z0") = ZB;
@@ -420,9 +420,16 @@ classdef NetSynth < handle
 				if strcmp(el.ref_type, "C")
 					Zl = 1/(2*3.1415926535*obj.freq*el.val*mult);
 					Xl = 1/Zl;
+					
+					el.props("Term") = "OPEN";
+					el.nodes(2) = strcat("n", num2str(obj.node_iterator));
+					
 				elseif strcmp(el.ref_type, "L")
 					Zl = 2*3.1415926535*obj.freq*el.val*mult;
 					Xl = Zl;
+					
+					el.props("Term") = "SHORT";
+				
 				else
 					warning(strcat("No rule for processing element type '", el.ref_type, "'."));
 					continue;
@@ -438,8 +445,7 @@ classdef NetSynth < handle
 				el.val_unit = "DEG";
 				el.ref_type = "TL";
 				el.props("Stub") = true;
-				el.props("Term") = "OPEN";
-				el.nodes(2) = strcat("n", num2str(obj.node_iterator));
+				
 				el.props("Z0") = Zstub;
 				
 				% Increment Node
