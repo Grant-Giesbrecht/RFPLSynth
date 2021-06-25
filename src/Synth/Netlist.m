@@ -6,6 +6,7 @@ classdef Netlist < handle
 		
 		next_unique_id
 
+		ref_ids
 	end
 
 	methods
@@ -13,6 +14,8 @@ classdef Netlist < handle
 			obj.components = comp;
 			
 			obj.next_unique_id = 1;
+			
+			obj.ref_ids = containers.Map();
 		end
 
 		function tf = addAt(obj, elmnt, idx)
@@ -272,29 +275,150 @@ classdef Netlist < handle
 			end
 
 		end
+		
+		function annotate(obj, reset)
+			
+			% Check if 'reset' exists
+			if ~exist('reset', 'var')
+				reset = false;
+			end
+			
+			% Reset annotations if asked
+			if reset
+				for c=obj.components
+					c.ref_num = 0;
+				end
+			end
+			
+			% For each component...
+			for c=obj.components
+				
+				% Skip labeled components
+				if c.ref_num ~= 0
+					continue;
+				end
+				
+				% Otherwise check if key exists
+				if isKey(obj.ref_ids, c.ref_type)
+					
+					% Get new ID
+					c.ref_num = Netlist.nextListID(obj.ref_ids(c.ref_type));
+					
+					% Add ID to list
+					obj.ref_ids(c.ref_type) = addTo(obj.ref_ids(c.ref_type), c.ref_num);
+				else
+					
+					% Assign component as '1'
+					c.ref_num = 1;
+					
+					% Add to ref_ids
+					obj.ref_ids(c.ref_type) = 1;
+				end
+				
+			end
+			
+		end %========================= END annotate() =====================
 
 		function s = str(obj, indent)
 
+			simple_output = false;
+			precision = 3;
+			
 			if ~exist('indent', 'var')
 				indent = "    ";
 			end
 
 			s = "";
 
-			% Display result
-			for c=obj.components
+			if simple_output
+				% Display result
+				for c=obj.components
 
-				% Add newline after each line
-				if ~strcmp(s, "")
-					s = s + newline;
+					% Add newline after each line
+					if ~strcmp(s, "")
+						s = s + newline;
+					end
+
+					s = strcat(s, indent, c.str());
+
 				end
-
-				s = strcat(s, indent, c.str());
-
+			else
+				
+				obj.annotate();
+				
+				% Initialize table
+				mt = MTable();
+				mt.table_title("Netlist");
+				mt.row(["Ref.", "Value", "Node 1", "Node 2", "Z0", "Stub Type"]);
+				
+				rowstr = "";
+				
+				for c=obj.components
+					
+					rowstr = strcat(c.ref_type, string(c.ref_num));
+					rowstr(2) = strcat(MTable.prd(c.val, precision), " ", c.val_unit);
+					rowstr(3) = c.nodes(1);
+					rowstr(4) = c.nodes(2);
+					rowstr(5) = " - ";
+					rowstr(6) = " - ";
+					
+					% Handle TL specific fields
+					if c.ref_type == "TL"
+						if isKey(c.props, "Z0")
+							if isnumeric(c.props("Z0"))
+								rowstr(5) = MTable.prd(c.props("Z0"), 1);
+							else
+								rowstr(5) = c.props("Z0");
+							end
+						end
+						if isKey(c.props, "Stub")
+							if c.props("Stub") && isKey(c.props, "TERM")
+								rowstr(6) = "Stub: " + c.props("TERM");
+							else
+								rowstr(6) = "TLine";
+							end
+						end
+					end
+					
+					mt.row(rowstr);
+					
+				end
+				
+				mt.alignac('r');
+				
+				s = mt.str();
+				
 			end
-
+			
+			
 		end
 
+	end
+	
+	methods (Static)
+		
+		function id = nextListID(list, quick)
+			
+			if ~exist('quick', 'var')
+				quick = false;
+			end
+			
+			% Make sure list is numeric
+			if ~isnumeric(list)
+				id = NaN;
+				return;
+			end
+			
+			if ~quick
+				id = 1;
+				while any(id == list)
+					id = id + 1;
+				end
+			else
+				id = ceil(max(list))+1;
+			end
+		end
+		
 	end
 
 end
