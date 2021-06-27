@@ -26,6 +26,25 @@ classdef NetSynth < handle
 %	vel - Propagation velocity of EM waves in a conductor for use when
 %	converting between transmission line lengths and electrical lengths.
 %
+% NETSYNTH Methods
+%	NetSynth - Initialize class
+%	initFreqVF - Initialize freq and vel
+%	realizable - Check realizability conditions
+%	changeZaddStubs - Automatically change impedances of multiple transmission lines
+%	lowerZ - Reduce Z0 of a single transmission line with new components
+%	raiseZ - Increase Z0 of a single transmission line with new components
+%	toStub - Convert inductors and capacitors to stubs
+%	richardStepZ - Create a stepped impedance line
+%	richardStub -
+%	foster1 -
+%	foster2 -
+%	cauer1 -
+%	cauer2 -
+%	getlastfoster -
+%	getlastcauer -
+%	generate -
+%	reset - Reset the NetSynth object
+%	scaleComponents - 
 
 	properties
 
