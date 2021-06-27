@@ -1,4 +1,31 @@
 classdef NetSynth < handle
+% NETSYNTH Radio-frequency network synthesis class
+%
+% Network synthesis class which can perform multiple forms of Network synthesis:
+%	Foster form-I
+%	Foster form-II
+%	Cauer form-I
+%	Cauer form-II
+%	Richard's transformations
+%
+% NETSYNTH Properties
+%	stg - A Stage class from which to synthesize networks
+%	num_orig - Original numerator of the input Z-polynomial
+%	den_orig - Original denominator of the input Z-polynomial
+%	is_admit - If true, polynomial represents 1/Z instead of Z.
+%	num - Numerator of remaining Z polynomial
+%	den - Denominator of remaining Z polynomial
+%	finished - Set to true when a complete network has been synthesized
+%	circ - Netlist output from the synthesis process
+%	node_iterator - Number incremented for naming the next circuit node
+%	current_node - Name of the current output-side node of the circuit
+%	output_node - Name of the final output node of the circuit
+%	msg - Output message if an error occurs
+%	freq - Frequency at which to compute L and C values when impedances must be
+%	converted to component values
+%	vel - Propagation velocity of EM waves in a conductor for use when
+%	converting between transmission line lengths and electrical lengths.
+%
 
 	properties
 
@@ -20,15 +47,22 @@ classdef NetSynth < handle
 		output_node
 
 		msg
-		
+
 		freq % Frequency
 		vel % Propagation speed
-		vf_init 
 	end
 
 	methods
 
 		function obj = NetSynth(stg_num, den)
+		% NETSYNTH Initailize NETSYNTH class
+		%
+		%	obj = NETSYNTH(stg_num) Initialize class with a Stage object.
+		%
+		%	obj = NETSYNTH(stg_num, den) Initailize class with a numerator and
+		%	denominator vector of polynomial coefficients in MATLAB's
+		%	polynomial vector format.
+		%
 
 			% Check if user is initializing with numerator and denominator
 			% vectors, or with Stage class.
@@ -67,18 +101,46 @@ classdef NetSynth < handle
 			obj.output_node = "?";
 
 			obj.msg = [];
-			
+
 			obj.vel = "Not Initialized";
 			obj.freq = "Not Initialized";
 
 		end
-		
+
 		function initFreqVF(v, f)
+		% INITFREQVF Initialize freq and vel
+		%
+		%	INITFREQVF(v, f) Set 'vel' as 'v' and 'freq' as 'f'
+		%
+
 			obj.vel = v;
 			obj.freq = f;
 		end
 
 		function [forms, m] = realizable(obj, varargin)
+		% REALIZABLE Check network realizability criteria
+		%
+		% Check for which network synthesis algorithms the polynomial given by
+		% num and den is realizable. Checks for algorithms Cauer1, Cauer2,
+		% Foster1, and Foster2.
+		%
+		%	[forms, m] = REALIZABLE() Checks the realizability condition and
+		%	returns the available synthesis forms as a list of strings in
+		%	'forms'. 'm' contains any general messages.
+		%
+		%	[forms, m] = REALIZABLE(..., options) Checks realizability functions
+		%	and performs additional operations as required by the optional
+		%	parameters.
+		%
+		% OPTIONS:
+		%	DetailedForm - Takes a string argument specifying one of the
+		%	available synthesis forms and replaces the standard message in 'm'
+		%	with a detailed message stating why that form is not realizable if
+		%	it is not realizable.
+		%
+
+		% TODO: Add Richards
+		% TODO: Add other DP conditions
 
 			m = "";
 
@@ -207,11 +269,25 @@ classdef NetSynth < handle
 
 
 		end
-		
+
 		function tf = changeZaddStubs(obj, varargin)
-			
-			
-		
+		% CHANGEZADDSTUBS Change transmission line impedance by adding stubs
+		%
+		% Changes the tranmission line impedance without violating design
+		% requirements by adding components on either side of the tranmission
+		% line. Typically used after a Richard's transformation.
+		%
+		%	tf = CHANGEZADDSTUBS(..., options) Changes transmission line
+		%	impedances by adding components at the ends of the stubs.
+		%
+		% OPTIONS:
+		%	Zmin - Minimum acceptable line impedance
+		%	Zmax - Maximum acceptable line impedance
+		%	Index - List of elements to verify, specified by their indeces
+		%
+		% See also: lowerZ, raiseZ, generate
+
+
 			p = inputParser;
 			p.addParameter('Zmin', 35, @(x) x > 0 );
 			p.addParameter('Zmax', 100, @(x) x > 0);
@@ -221,7 +297,7 @@ classdef NetSynth < handle
 
 			Zmin = p.Results.Zmin;
 			Zmax = p.Results.Zmax;
-			
+
 			% Check Zmax and Zmin
 			if Zmax < Zmin
 				warning("Zmax is less than Zmin");
@@ -229,65 +305,76 @@ classdef NetSynth < handle
 				Zmax = Zmin;
 				Zmin = temp;
 			end
-			
+
 			% Get indexes
 			elmts_idx = [];
 			if p.Results.Index == -1 % Use all indeces if -1
-				
-				for e = obj.circ.components 
+
+				for e = obj.circ.components
 					if e.ref_type == "TL" && isKey(e.props, "Z0") % Add to list if is  TL and has Z0 defined
 						elmts_idx = addTo(elmts_idx, e.unique_id);
 					end
 				end
-				
+
 			else
 				elmts_idx = p.Results.Index;
 			end
-		
+
 			% Check each listed TL, see if in bounds
 			for id = elmts_idx
-				
+
 				idx = obj.circ.ID2Idx(id);
-				
-				if obj.circ.components(idx).props("Z0") < Zmin 
+
+				if obj.circ.components(idx).props("Z0") < Zmin
 					obj.raiseZ(idx, Zmin);
 				elseif obj.circ.components(idx).props("Z0") > Zmax
 					obj.lowerZ(idx, Zmax);
 				end
-			
+
 			end
-			
+
 			obj.circ.simplify();
-			
+
 			for t = elmts_idx
 				obj.toStub();
 			end
-			
+
 		end
-		
+
 		function tf = lowerZ(obj, eidx, ZB)
-			
+		% LOWERZ Decreases the impedance of a tranmission line by adding series
+		% inductors.
+		%
+		% Decreases the impedance of a tranmission line by adding series
+		% inductors. Called in 'generate' as part of a Richard's transform.
+		%
+		%	tf = LOWERZ(eidx, ZB) Reduces the characteristic impedance of the
+		%	tranmission line at index 'eidx' to a value of 'ZB'. Returns true if
+		%	successful.
+		%
+		% See also: raiseZ, generate
+
 			% Ensure not out of bounds
 			if length(obj.circ.components) < eidx
 				warning("Out of bounds");
 				tf = false;
 				return;
 			end
-			
+
 			% Ensure correct component type
 			if ~strcmp(obj.circ.components(eidx).ref_type, "TL")
 				warning("Incorrect component type");
 				tf = false;
 				return;
 			end
-			
+
 			% Ensure impedance starts higher than 'Z' and 'Z0' is specified
 			if ~isKey(obj.circ.components(eidx).props, "Z0") || obj.circ.components(eidx).props("Z0") < ZB
 				warning("Wrong impedance change direction");
 				tf = false;
 				return;
 			end
-			
+
 			% Get original length
 			[mult, baseUnit] = parseUnit(obj.circ.components(eidx).val_unit);
 			if strcmp(baseUnit, "DEG") || strcmp(baseUnit, "DEGREE") || strcmp(baseUnit, "DEGREES")
@@ -297,64 +384,75 @@ classdef NetSynth < handle
 			elseif strcmp(baseUnit, "M")
 				theta_A = obj.virc.components(eidx).val / obj.vel * obj.freq;
 			end
-			
+
 			% Get new length
 			theta_B = asin(ZB/obj.circ.components(eidx).props("Z0")*sin(theta_A));
 			Z_L = (cos(theta_B) - cos(theta_A))*ZB / (sin(theta_B));
-			
+
 			% Create shunt elements
 			ce1 = CircElement(Z_L/(2*3.1415926535*obj.freq), "H");
 			ce1.props("ConvertToStub") = true;
 			ce1.props("StubZ") = ZB;
-			
+
 			ce2 = CircElement(Z_L/(2*3.1415926535*obj.freq), "H");
 			ce2.props("ConvertToStub") = true;
 			ce2.props("StubZ") = ZB;
-			
+
 			% Set nodes
 			ce1.nodes(1) = obj.circ.components(eidx).nodes(1);
-			obj.circ.components(eidx).nodes(1) = strcat("n", num2str(obj.node_iterator));	
+			obj.circ.components(eidx).nodes(1) = strcat("n", num2str(obj.node_iterator));
 			obj.node_iterator = obj.node_iterator + 1;
 			ce1.nodes(2) = obj.circ.components(eidx).nodes(1);
 			ce2.nodes(2) = obj.circ.components(eidx).nodes(2);
-			obj.circ.components(eidx).nodes(2) = strcat("n", num2str(obj.node_iterator));	
+			obj.circ.components(eidx).nodes(2) = strcat("n", num2str(obj.node_iterator));
 			obj.node_iterator = obj.node_iterator + 1;
 			ce2.nodes(1) = obj.circ.components(eidx).nodes(2);
-			
+
 			% Change transmission line values
 			obj.circ.components(eidx).props("Z0") = ZB;
 			obj.circ.components(eidx).val = theta_B*180/3.1415926535;
 			obj.circ.components(eidx).val_unit = "DEG";
-			
+
 			% Add new elements
 			obj.circ.addAt(ce2, eidx+1);
 			obj.circ.addAt(ce1, eidx);
-			
+
 		end
-		
+
 		function tf = raiseZ(obj, eidx, ZB)
-			
+		% RAISEZ Increases the impedance of a tranmission line by adding series
+		% inductors.
+		%
+		% Increases the impedance of a tranmission line by adding series
+		% inductors. Called in 'generate' as part of a Richard's transform.
+		%
+		%	tf = RAISEZ(eidx, ZB) Increases the characteristic impedance of the
+		%	tranmission line at index 'eidx' to a value of 'ZB'. Returns true if
+		%	successful.
+		%
+		% See also: lowerZ, generate
+
 			% Ensure not out of bounds
 			if length(obj.circ.components) < eidx
 				warning("Out of bounds");
 				tf = false;
 				return;
 			end
-			
+
 			% Ensure correct component type
 			if ~strcmp(obj.circ.components(eidx).ref_type, "TL")
 				warning("Incorrect component type");
 				tf = false;
 				return;
 			end
-			
+
 			% Ensure impedance starts higher than 'Z' and 'Z0' is specified
 			if ~isKey(obj.circ.components(eidx).props, "Z0") || obj.circ.components(eidx).props("Z0") > ZB
 				warning("Wrong impedance change direction");
 				tf = false;
 				return;
 			end
-			
+
 			% Get original length
 			[mult, baseUnit] = parseUnit(obj.circ.components(eidx).val_unit);
 			if strcmp(baseUnit, "DEG") || strcmp(baseUnit, "DEGREE") || strcmp(baseUnit, "DEGREES")
@@ -364,49 +462,58 @@ classdef NetSynth < handle
 			elseif strcmp(baseUnit, "M")
 				theta_A = obj.virc.components(eidx).val / obj.vel * obj.freq;
 			end
-			
+
 			% Get new length
 			theta_B = asin(obj.circ.components(eidx).props("Z0")/ZB*sin(theta_A));
 			Z_L = 1/((cos(theta_B) - cos(theta_A)) / (ZB*sin(theta_B)));
-			
+
 			% Create shunt elements
 			ce1 = CircElement(1/(2*3.1415926535*obj.freq*Z_L), "F");
 			ce1.props("ConvertToStub") = true;
 			ce1.props("StubZ") = ZB;
-			
+
 			ce2 = CircElement(1/(2*3.1415926535*obj.freq*Z_L), "F");
 			ce2.props("ConvertToStub") = true;
 			ce2.props("StubZ") = ZB;
-			
+
 			ce1.nodes(1) = obj.circ.components(eidx).nodes(1);
 			ce1.nodes(2) = "GND";
 			ce2.nodes(1) = obj.circ.components(eidx).nodes(2);
 			ce2.nodes(2) = "GND";
-			
+
 			% Change transmission line values
 			obj.circ.components(eidx).props("Z0") = ZB;
 			obj.circ.components(eidx).val = theta_B*180/3.1415926535;
 			obj.circ.components(eidx).val_unit = "DEG";
-			
+
 			% Add new elements
 			obj.circ.addAt(ce2, eidx+1);
 			obj.circ.addAt(ce1, eidx);
 % 			obj.circ.components = [obj.circ.components(1:eidx-1), ce1, obj.circ.components(eidx), ce2, obj.circ.components(eidx+1:end)];
-			
+
 		end
-		
+
 		function tf = toStub(obj)
-			
+		% TOSTUB Converts CircElements to stubs
+		%
+		% Converts series inductors and shunt capacitors to stubs if they are
+		% marked for conversion by containing a property "ConvertToStub" which
+		% is set to true. This function is typically called after lowerZ,
+		% raiseZ, or changeZaddStubs.
+		%
+		%	tf = TOSTUB() Converts marked capacitors and inductors to stubs. The
+		%	stubs impedance is expected in the component's property "StubZ".
+
 			tf = true;
-			
+
 			% For each element...
 			for el = obj.circ.components
-				
+
 				% Skip elements not marked for stub conversion
 				if ~isKey(el.props, "ConvertToStub") || el.props("ConvertToStub") == false
 					continue;
 				end
-				
+
 				% Get stub impedance
 				if ~isKey(el.props, "StubZ")
 					warning("Missing new impedance for stub conversion");
@@ -414,63 +521,66 @@ classdef NetSynth < handle
 				else
 					Zstub = el.props("StubZ");
 				end
-				
+
 				% Get element impedance
 				[mult, ~] = parseUnit(el.val_unit);
 				if strcmp(el.ref_type, "C")
 					Zl = 1/(2*3.1415926535*obj.freq*el.val*mult);
 					Xl = 1/Zl;
-					
+
 					el.props("Term") = "OPEN";
 					el.nodes(2) = strcat("n", num2str(obj.node_iterator));
-					
+
 					% Get stub length
 					theta_L = atan(Zstub * Xl);
-					
+
 				elseif strcmp(el.ref_type, "L")
 					Zl = 2*3.1415926535*obj.freq*el.val*mult;
 					Xl = Zl;
-					
+
 					el.props("Term") = "SHORT";
-				
+
 					% Get stub length
 					theta_L = atan(Xl/Zstub);
-					
+
 				else
 					warning(strcat("No rule for processing element type '", el.ref_type, "'."));
 					continue;
 				end
-				
-				
-				
-				
+
+
+
+
 				% Change element
 				el.props("ConvertToStub") = false;
 				el.val = theta_L*180/3.1415926535;
 				el.val_unit = "DEG";
 				el.ref_type = "TL";
 				el.props("Stub") = true;
-				
+
 				el.props("Z0") = Zstub;
-				
+
 				% Increment Node
 				obj.node_iterator = obj.node_iterator + 1;
-				
+
 			end
-			
+
 		end
-		
+
 		function tf = richardStepZ(obj)
-			
+		% RICHARDSTEPZ Create a stepped impdance network
+		%
+		%
+
 			%TODO: Check realizability
-			
+
 			% TODO: Determine how compatability with Foster and Cauer is
 			% affected, or if an actual transformation process is required
 			% other than just deciding it's now a function of t instead of
 			% s.
-			
+
 			tf = true;
-			
+
 			% Get Z numerator and denominator
 			if obj.is_admit
 				Z_num = obj.den;
@@ -479,35 +589,35 @@ classdef NetSynth < handle
 				Z_num = obj.num;
 				Z_den = obj.den;
 			end
-			
+
 			% Define symbolic polynomial
 			syms t;
 			n = poly2sym(Z_num, t);
 			d = poly2sym(Z_den, t);
 			Z_t = n/d;
-			
+
 			% Define impedance of UE
 			Z_ue = subs(Z_t, t, 1);
-			
+
 			% Determine remaining Z function
 			Z_rem = Z_ue * (Z_t - t * Z_ue ) / (Z_ue - t * Z_t);
 			[tn, td] = sym2nd(Z_rem);
-			
+
 			% Create circuit element
 			tl = CircElement(1, "m"); %TODO: Fix length of line
 			tl.props("Z0") = Z_ue;
 			tl.props("Stub") = false;
-			
+
 			tl.nodes(1) = obj.current_node;
-			
+
 			% Increment Node
 			obj.current_node = strcat("n", num2str(obj.node_iterator));
 			obj.node_iterator = obj.node_iterator + 1;
 
 			tl.nodes(2) = obj.current_node;
-			
+
 			obj.circ.add(tl);
-			
+
 			% Update numerator & denominator
 			if obj.is_admit
 				obj.num = td;
@@ -516,7 +626,7 @@ classdef NetSynth < handle
 				obj.num = tn;
 				obj.den = td;
 			end
-			
+
 			% Check for is last stage
 			np = Polynomial(0);
 			dp = Polynomial(0);
@@ -524,30 +634,30 @@ classdef NetSynth < handle
 			dp.setVec(td);
 			if np.order() == 0 && dp.order() == 0
 				obj.finished = true;
-				
+
 				R = CircElement(np.get(0)/dp.get(0), "Ohms");
 				R.nodes(1) = obj.current_node;
 				R.nodes(2) = "GND";
 				obj.output_node = obj.current_node;
-				
+
 				obj.circ.add(R);
-				
+
 			end
-			
+
 		end
-		
+
 		function tf = richardStub(obj)
-			
+
 			%TODO: Check realizability
-			
-			
+
+
 			% TODO: Determine how compatability with Foster and Cauer is
 			% affected, or if an actual transformation process is required
 			% other than just deciding it's now a function of t instead of
 			% s.
-			
+
 			tf = true;
-			
+
 			% Get Z numerator and denominator
 			if obj.is_admit
 				Z_num = obj.den;
@@ -556,78 +666,78 @@ classdef NetSynth < handle
 				Z_num = obj.num;
 				Z_den = obj.den;
 			end
-			
+
 			% Define Polynomial
 			np = Polynomial(0);
 			dp = Polynomial(0);
 			np.setVec(Z_num);
 			dp.setVec(Z_den);
-			
+
 			% Define symbolic polynomial
 			syms t;
 			n = poly2sym(Z_num, t);
 			d = poly2sym(Z_den, t);
 			Z_t = n/d;
-			
+
 			% Determine if open or shorted stub is to be extracted
 			extract_open = true;
 			if np.order() > dp.order()
 				extract_open = false;
 			end
-			
-			
+
+
 			if extract_open
-				
+
 				n = dp.order();
-				
+
 				% Define impedance of UE
 				Z_ue = np.get(n-1)/dp.get(n);
-				
+
 				% Get remainder polynomial
 				Z_rem = (Z_ue * Z_t)/(Z_ue - t * Z_t);
 				[tn, td] = sym2nd(Z_rem);
-				
+
 			else
-				
+
 				n = np.order();
-				
+
 				% Define impedance of UE
 				Z_ue = np.get(n)/dp.get(n-1);
-				
+
 				% Get remainder polynomial
 				Z_rem = (Z_ue * Z_t)/(Z_ue - t * Z_t);
 				[tn, td] = sym2nd(Z_rem);
 			end
-			
+
 			% Create circuit element
 			tl = CircElement(1, "m"); %TODO: Fix length of line
 			tl.props("Z0") = Z_ue;
 			tl.props("Stub") = true;
-			
+
 			if extract_open
 				tl.props("Term") = "OPEN";
-				
+
 				tl.nodes(1) = obj.current_node;
 				tl.nodes(2) = strcat("n", num2str(obj.node_iterator));
-				
+
 				% Increment Node
 				obj.node_iterator = obj.node_iterator + 1;
-				
+
 			else
 				tl.props("Term") = "SHORT";
-				
+
 				tl.nodes(1) = obj.current_node;
-			
+
 				% Increment Node
 				obj.current_node = strcat("n", num2str(obj.node_iterator));
 				obj.node_iterator = obj.node_iterator + 1;
 
 				tl.nodes(2) = obj.current_node;
-				
+
 			end
-			
+
 			obj.circ.add(tl);
-			
+
 			% Update numerator & denominator
 			if obj.is_admit
 				obj.num = td;
@@ -636,7 +746,7 @@ classdef NetSynth < handle
 				obj.num = tn;
 				obj.den = td;
 			end
-			
+
 			% Check for is last stage
 			np = Polynomial(0);
 			dp = Polynomial(0);
@@ -644,19 +754,19 @@ classdef NetSynth < handle
 			dp.setVec(td);
 			if np.order() == 0 && dp.order() == 0
 				obj.finished = true;
-				
+
 				R = CircElement(np.get(0)/dp.get(0), "Ohms");
 				R.nodes(1) = obj.current_node;
 				R.nodes(2) = "GND";
 				obj.output_node = obj.current_node;
-				
+
 				obj.circ.add(R);
-				
+
 			end
-			
+
 		end
-		
-		
+
+
 
 		function tf = foster1(obj)
 
@@ -665,14 +775,14 @@ classdef NetSynth < handle
 			% Check realizability criteria
 			[formats, fm] = obj.realizable('DetailedForm', 'Foster1');
 			if ~any(formats == "Foster1")
-				
+
 				% Try flipping poly
 				obj.is_admit = ~obj.is_admit;
 				temp = obj.num;
 				obj.num = obj.den;
 				obj.den = temp;
 				[formats, fm] = obj.realizable('DetailedForm', 'Foster1');
-				
+
 				if ~any(formats == "Foster1")
 					tf = false;
 					obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Foster1' (", fm , ")"));
@@ -680,7 +790,7 @@ classdef NetSynth < handle
 				else
 					obj.msg = addTo(obj.msg, "To realize as Foster1, function was inverted.");
 				end
-				
+
 			end
 
 			% Get Z numerator and denominator
@@ -754,14 +864,14 @@ classdef NetSynth < handle
 			% Check realizability criteria
 			[formats, fm] = obj.realizable('DetailedForm', 'Foster2');
 			if ~any(formats == "Foster2")
-				
+
 				% Try flipping poly
 				obj.is_admit = ~obj.is_admit;
 				temp = obj.num;
 				obj.num = obj.den;
 				obj.den = temp;
 				[formats, fm] = obj.realizable('DetailedForm', 'Foster2');
-				
+
 				if ~any(formats == "Foster2")
 					tf = false;
 					obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Foster2' (", fm , ")"));
@@ -851,14 +961,14 @@ classdef NetSynth < handle
 			% Check realizability criteria
 			[formats, fm] = obj.realizable('DetailedForm', 'Cauer1');
 			if ~any(formats == "Cauer1")
-				
+
 				% Try flipping poly
 				obj.is_admit = ~obj.is_admit;
 				temp = obj.num;
 				obj.num = obj.den;
 				obj.den = temp;
 				[formats, fm] = obj.realizable('DetailedForm', 'Cauer1');
-				
+
 				if ~any(formats == "Cauer1")
 					tf = false;
 					obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Cauer1' (", fm , ")"));
@@ -935,14 +1045,14 @@ classdef NetSynth < handle
 			% Check realizability criteria
 			[formats, fm] = obj.realizable('DetailedForm', 'Cauer2');
 			if ~any(formats == "Cauer2")
-				
+
 				% Try flipping poly
 				obj.is_admit = ~obj.is_admit;
 				temp = obj.num;
 				obj.num = obj.den;
 				obj.den = temp;
 				[formats, fm] = obj.realizable('DetailedForm', 'Cauer2');
-				
+
 				if ~any(formats == "Cauer1")
 					tf = false;
 					obj.msg = addTo(obj.msg, strcat("Cannot synthesize form 'Cauer2' (", fm , ")"));
@@ -950,10 +1060,10 @@ classdef NetSynth < handle
 				else
 					obj.msg = addTo(obj.msg, "To realize as Cauer2, function was inverted.");
 				end
-				
+
 			end
-			
-			
+
+
 
 			% Note: Admittance chcek is not done here because Y and Z are
 			% processed the same way - it's not until the output 'k' is found
@@ -1169,7 +1279,7 @@ classdef NetSynth < handle
 							return
 						end
 					case "Richard"
-						
+
 						if length(obj.num) == length(obj.den)
 							if ~obj.richardStepZ()
 								tf = false;
@@ -1303,6 +1413,13 @@ classdef NetSynth < handle
 		% end %========================== END genFoster2() ==================
 
 		function reset(obj)
+		% RESET Reset the NetSynth class
+		%
+		% Reset the NetSynth class to generate a new network with the original
+		% polynomial.
+		%
+		% 	RESET() Reset the NetSynth class
+		%
 
 			obj.num = obj.num_orig;
 			obj.den = obj.den_orig;
