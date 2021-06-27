@@ -1,4 +1,16 @@
 classdef CircElement < handle
+% CIRCELEMENT Represent an element of a circuit
+%
+%	CIRCELEMENT Properties
+%		ref_type - Letter used in reference identifier (eg. 'R' for 'R1')
+%		ref_num - Reference number (eg. '1' in 'R1')
+%		val - Component value
+%		val_unit - Units of 'val'
+%		part_no - Manufacturer's part number for BOM
+%		props - Map of additional component properties
+%		unique_id - Circuit number, unique among circuit elements in a
+%		netlist for easy identification of components.
+
 	
 	properties
 		nodes
@@ -15,6 +27,12 @@ classdef CircElement < handle
 	
 	methods
 		function obj = CircElement(val, unit)
+		%CIRCELEMENT Initialize the CIRCELEMENT object
+		%
+		%	obj = CIRCELEMENT(val, unit) Create a circuit element with
+		%	value 'val' with units 'unit'.
+		%
+		
 			obj.nodes = [""]; % pin N connects to node 'nodes(N)'
 			obj.ref_type = "?"; % ex. 'R' for resistor, 'Q' for transistor
 			obj.ref_num = 0; % ex. the number in 'R4'
@@ -29,6 +47,10 @@ classdef CircElement < handle
 		end
 		
 		function s = str(obj)
+		%STR Display the object as a string
+		%
+		%	s = STR() Create a string containing the circuit element's
+		%	data.
 			
 			% Create node string
 			nodestr = "";
@@ -64,7 +86,13 @@ classdef CircElement < handle
 		end
 		
 		function format(obj) %============== format() =====================
-			
+		% FORMAT Populate the object's data fields inferring from val_unit.
+		%
+		% Uses val_unit to infer the component's type. 
+		%
+		%	FORMAT() Populate the object's data fields
+		%
+		
 			ustr = string(obj.val_unit);
 			cu = char(obj.val_unit);
 			
@@ -107,7 +135,13 @@ classdef CircElement < handle
 		end %==================== END format() ============================
 		
 		function zf = Z(obj, freq) %===================== Z() =============
-			
+		% Z Calculate the component's impedance
+		%
+		% zf = Z(freq) Calcualtes the object's impedance at frequency
+		% 'freq'. This function is only valid for inductors, capacitors,
+		% and resistors with ref_types 'L', 'C', and 'R', respectively. 
+		%
+		
 			switch obj.ref_type
 				case "C"
 					zf = Zc(obj.val, freq);
