@@ -11,6 +11,18 @@ classdef Netlist < handle
 %	ref_ids - Map of reference numbers, organzied by ref_type as the maps keys
 %	so annotation doesn't produce duplicate references.
 %
+% NETLIST Methods
+%	Netlist - Initializer
+%	addAt - Add CircElement at index
+%	add - Add CircElement at back
+%	ID2IDX - Get index from unique_id
+%	simplify - Simplify parallel and series elements
+%	pallCombine - Combine parallel elements
+%	serCombine - Combine series elements
+%	purge - Remove shorts and opens
+%	annotate - Fill ref_num for each CircElement
+%	str - Generate string
+%	nextListID - Get next ref_num for type
 
 	properties
 
