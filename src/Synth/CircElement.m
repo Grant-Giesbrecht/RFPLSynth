@@ -11,6 +11,12 @@ classdef CircElement < handle
 %		props - Map of additional component properties
 %		unique_id - Circuit number, unique among circuit elements in a
 %		netlist for easy identification of components.
+%
+%	CIRCELEMENT Methods
+%		CircElement - Initailzer
+%		str - Generate string
+%		format - Populate fields from ref_type
+%		Z - Calcualte element impedance
 
 
 	properties
