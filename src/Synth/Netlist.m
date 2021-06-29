@@ -410,7 +410,7 @@ classdef Netlist < handle
 		%
 
 			simple_output = false;
-			precision = 3;
+			precision = 1;
 
 			if ~exist('indent', 'var')
 				indent = "    ";
@@ -444,7 +444,7 @@ classdef Netlist < handle
 				for c=obj.components
 
 					rowstr = strcat(c.ref_type, string(c.ref_num));
-					rowstr(2) = strcat(MTable.prd(c.val, precision), " ", c.val_unit);
+					rowstr(2) = scaleNumUnit(c.val, c.val_unit, 'DecimalPlaces', precision);
 					rowstr(3) = c.nodes(1);
 					rowstr(4) = c.nodes(2);
 					rowstr(5) = " - ";
