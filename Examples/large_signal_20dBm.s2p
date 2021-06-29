@@ -1,0 +1,11 @@
+! S-Parameters for the transistors listed in Jarry + Beneat Chapter 2's Example
+! (section 2,8).
+! Power = 20 dBm
+
+# GHZ S MA R 50
+
+! FREQ  |S11|  <S11  |S21|  <S21  |S12|  <S12  |S22|  <S22
+
+1	 	.721 -143	2.5 57.6 	.0752 7.9 	.559 -73.9
+2.5		.719 -144.7 2.4 54.4	.0752 6.8	.568 -76.2
+3		.717 -146.2	2.3 51.4	.0752 5.8	.578 -78.4
