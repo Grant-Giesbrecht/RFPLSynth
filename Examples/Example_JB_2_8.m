@@ -102,7 +102,8 @@ for k=1:5
 		displ("ERROR: Failed to generate network.", newline, "    ", new_synth.msg, newline, "    N=[", new_synth.num, "], D=[", new_synth.den, "]");
 		return
 	else
-		displ(new_synth.msg);
+% 		displ(new_synth.msg);
+		displ(newline);
 	end
 
 	% Purge insignificant components
