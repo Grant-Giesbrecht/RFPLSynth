@@ -102,7 +102,13 @@ classdef NetSynth < handle
 
 				% Save stage
 				obj.stg = stg_num;
-
+			elseif isa(stg_num, 'Polynomial')
+				
+				num = stg_num.getVec();
+				den = den.getVec();
+				
+			else
+				error(strcat("Failed to initialize NetSynth from type '", class(stg_num), "'."));
 			end
 
 			obj.is_admit = false;
@@ -170,7 +176,7 @@ classdef NetSynth < handle
 			p.parse(varargin{:});
 			detailedForm = p.Results.DetailedForm;
 
-			forms = [];
+			forms = strings(0);
 
 			% Create Polynomial class from numerator and denominator vecs
 			np = Polynomial(0);
