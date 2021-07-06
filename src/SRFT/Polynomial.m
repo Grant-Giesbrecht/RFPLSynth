@@ -44,15 +44,11 @@ classdef Polynomial < handle
 		
 		function obj = Polynomial(n)
 			
-			% Determine dimensions of n
-			[~, c] = size(n);
 			
-			if c == 1 % Initilize with zeros to order 'n'
-				obj.coefficients = zeros(1, n+1);
-			else % Initialize to mimic vector 'n'
-				obj.coefficients = [0];
-				obj.setVec(n);
-			end
+			obj.coefficients = [0];
+			obj.setVec(n);
+			
+
 		end
 		
 		function v = getVec(obj)
@@ -110,7 +106,7 @@ classdef Polynomial < handle
 			% Ensure order is within bounds
 			if  ord < 0 || ord > obj.order()
 				if obj.allowPrintErrors
-					displ("Failed to get coefficient because it was out of bounds");
+					displ("Failed to get coefficient (", ord, ") because it was out of bounds (", obj.order(), ")");
 				end
 				return;
 			end
