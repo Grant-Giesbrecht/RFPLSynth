@@ -534,33 +534,6 @@ classdef MultiStage < handle
 					stgk.gain_t(:) = min( product );
 				end
 
-% 				stgk.SL(:) = stgk.S(1,1,:);
-% 				stgk.eh(1,1,:) = flatten(stgk.e(1,1,:)) + flatten(stgk.e(2,1,:)).^2 .* flatten(stgk.SL(:)) ./ ( 1 - flatten(stgk.e(2,2,:)) .* flatten(stgk.SL(:)));
-%
-% 				% Redefinitions
-% 				%
-% 				% TODO: I think the eh(1,1,:) and SL calculations might be
-% 				% wrong - they might need to chain backwards (ie. calc.
-% 				% SL(k), then eh(1,1)(k), then SL(k-)... eh(1,1)(1). Not
-% 				% clear to me. P. 53
-% 				%
-%
-
-% 				if k ~= 1
-% 					stgk_.SL(:) = stgk_.S(1,1,:) + stgk_.S(1,2,:) .* stgk_.S(2,1,:) .* stgk.eh(1,1,:) ./ ( 1 - stgk_.S(2,2,:) .* stgk.eh(1,1,:) ) ;
-% 					stgk_.eh(1,1,:) = flatten(stgk_.e(1,1,:)) + flatten(stgk_.e(2,1,:)).^2 .* flatten(stgk_.SL(:)) ./( 1 - flatten(stgk_.e(2,2,:)) .* flatten(stgk_.SL(:))) ;
-% 				end
-% 				obj.vswr_in(:) = ( 1 + flatten(abs(obj.getStg(1).eh(1,1,:))) ) ./ ( 1 - flatten(abs(obj.getStg(1).eh(1,1,:))) ); %TODO: This always uses stage 1 for calculation. Verify this is correct.
-% 				obj.vswr_out(:) = (1 + abs(flatten(stgk.eh(2,2,:)))) ./ ( 1 - abs(flatten(stgk.eh(2,2,:))) );
-% 				obj.vswr_in(:) = [1,2,3,4];
-% 				obj.vswr_out(:) = [1,2,3,4];
-
-				% Save VSWR to stage that used this VSWR for optimization
-% 				if k == k_ready
-% 					stgk.vswr_in_opt = obj.vswr_in(:);
-% 					stgk.vswr_out_opt = obj.vswr_out(:);
-% 				end
-
 				% Save new values back to MultiStage
 				obj.setStg(k, stgk); % Stage 'k'
 				if k ~= 1
@@ -589,12 +562,6 @@ classdef MultiStage < handle
 
 				else % Every other case...
 
-% 				if k == 1
-% 					stgkp = obj.null_stage;
-% 				else
-% 					stgkp = obj.getStg(k-1); % Stage 'k-1'
-% 				end
-
 					if k == k_ready
 						stgk_.SL(:) = stgk_.S(1,1,:);
 					else
@@ -612,20 +579,6 @@ classdef MultiStage < handle
 				% SL(k), then eh(1,1)(k), then SL(k-)... eh(1,1)(1). Not
 				% clear to me. P. 53
 				%
-
-
-% 				if k ~= 1
-% 					stgk_.SL(:) = stgk_.S(1,1,:) + stgk_.S(1,2,:) .* stgk_.S(2,1,:) .* stgk.eh(1,1,:) ./ ( 1 - stgk_.S(2,2,:) .* stgk.eh(1,1,:) ) ;
-% 					stgk_.eh(1,1,:) = flatten(stgk_.e(1,1,:)) + flatten(stgk_.e(2,1,:)).^2 .* flatten(stgk_.SL(:)) ./( 1 - flatten(stgk_.e(2,2,:)) .* flatten(stgk_.SL(:))) ;
-% 				end
-% 				obj.vswr_in(:) = ( 1 + flatten(abs(obj.getStg(1).eh(1,1,:))) ) ./ ( 1 - flatten(abs(obj.getStg(1).eh(1,1,:))) );
-% 				obj.vswr_out(:) = (1 + abs(flatten(stgk.eh(2,2,:)))) ./ ( 1 - abs(flatten(stgk.eh(2,2,:))) );
-
-				% Save VSWR to stage that used this VSWR for optimization
-% 				if k == k_ready
-% 					stgk.vswr_in_opt = obj.vswr_in(:);
-% 					stgk.vswr_out_opt = obj.vswr_out(:);
-% 				end
 
 				% Save new values back to MultiStage
 				obj.setStg(k, stgk_); % Stage 'k'
@@ -663,6 +616,12 @@ classdef MultiStage < handle
 			net.compute_rcsv();
 
 			error_sum = net.getStg(k).eval_func(net, k);
+			
+			[sr, sc] = size(error_sum);
+			if sr ~= 1 || sc ~= 1
+				warning(strcat("Return value is incorrect size (", num2str(sr), "x", num2str(sc), ")"));
+				net.getStg(k).eval_func(net, k);
+			end
 
 		end
 	end
