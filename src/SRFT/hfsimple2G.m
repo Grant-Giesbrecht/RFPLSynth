@@ -8,7 +8,7 @@ function Gs2 = hfsimple2G(h, k)
 	n = h.order();
 
 	% Create G Polynomial
-	G = Polynomial(zeros(1, n));
+	G = Polynomial(zeros(1, n+1));
 
 	% Start at order 0, and compute each term of G(s^2) = g(s)*g(-s)
 	for ord = 0:n
@@ -48,7 +48,7 @@ function Gs2 = hfsimple2G(h, k)
 	% and so forth. Currently G is written as a polynomial of s. Here we
 	% add in the missing odd values of 's' so G is correctly presented as
 	% G(s^2).
-	Gs2 = Polynomial(zeros(1, G.order()*2));
+	Gs2 = Polynomial(zeros(1, 1+G.order()*2));
 	for ord=0:G.order()
 
 		Gs2.set(ord*2, G.get(ord));
