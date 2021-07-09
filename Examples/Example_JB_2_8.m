@@ -25,7 +25,7 @@
 synth_f_scale = 21e9*2*pi;
 synth_Z0_scale = 50;
 
-SParam_Q = sparameters("JB_Ch2_Ex_Q.s2p"); % Read transistor S-parameter data
+SParam_Q = sparameters('JB_Ch2_Ex_Q.s2p'); % Read transistor S-parameter data
 
 force_h0 = true;
 
@@ -110,7 +110,7 @@ for k=1:5
 	new_synth.circ.purge();
 
 	% Display result
-	disp(new_synth.circ.str());
+	disp(new_synth.circ.str(strcat("Network ", num2str(k))));
 
 	% Add synthesizer to master list
 	synths = addTo(synths, new_synth);
