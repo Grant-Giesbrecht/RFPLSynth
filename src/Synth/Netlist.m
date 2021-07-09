@@ -400,7 +400,7 @@ classdef Netlist < handle
 
 		end %========================= END annotate() =====================
 
-		function s = str(obj, indent)
+		function s = str(obj, title_str, indent)
 		% STR Generate a string representing the Netlist
 		%
 		%	s = STR() Generate Netlist string
@@ -412,6 +412,10 @@ classdef Netlist < handle
 			simple_output = false;
 			precision = 1;
 
+            if ~exist('title_str', 'var')
+               title_str = "Netlist"; 
+            end
+            
 			if ~exist('indent', 'var')
 				indent = "    ";
 			end
@@ -436,7 +440,7 @@ classdef Netlist < handle
 
 				% Initialize table
 				mt = MTable();
-				mt.table_title("Netlist");
+				mt.table_title(title_str);
 				mt.row(["Ref.", "Value", "Node 1", "Node 2", "Z0", "Stub Type"]);
 
 				rowstr = "";
@@ -447,8 +451,8 @@ classdef Netlist < handle
 					rowstr(2) = scaleNumUnit(c.val, c.val_unit, 'DecimalPlaces', precision);
 					rowstr(3) = c.nodes(1);
 					rowstr(4) = c.nodes(2);
-					rowstr(5) = " - ";
-					rowstr(6) = " - ";
+					rowstr(5) = "N/A";
+					rowstr(6) = "N/A";
 
 					% Handle TL specific fields
 					if c.ref_type == "TL"
